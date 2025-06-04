@@ -1,5 +1,29 @@
 #pragma once
 
+#include <Windows.h>
+#include "KernelHeapAlloc.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct _UNICODE_STRING {
+    USHORT Length;
+    USHORT MaximumLength;
+    PWSTR  Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+typedef LONG NTSTATUS;
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
+#define STATUS_NO_MEMORY ((NTSTATUS)0xC0000017L)
+
+NTSTATUS DuplicateUnicodeString(PUNICODE_STRING Destination, PCWSTR Source);
+void FreeUnicodeString(PUNICODE_STRING UnicodeString);
+
+#ifdef __cplusplus
+}
+#endif
+
 // Helper functions for UNICODE_STRING management
 inline NTSTATUS DuplicateUnicodeString(PUNICODE_STRING Destination, PCWSTR Source)
 {
@@ -7,7 +31,7 @@ inline NTSTATUS DuplicateUnicodeString(PUNICODE_STRING Destination, PCWSTR Sourc
 	USHORT MaximumLength = Length + sizeof(WCHAR); // Add space for null terminator
 
 	// Use tracked allocation 
-	Destination->Buffer = ExAllocatePoolTracked(PagedPool, MaximumLength);
+	Destination->Buffer = (PWSTR)ExAllocatePoolTracked(PagedPool, MaximumLength);
 	if (!Destination->Buffer) {
 		return STATUS_NO_MEMORY;
 	}
@@ -21,7 +45,7 @@ inline NTSTATUS DuplicateUnicodeString(PUNICODE_STRING Destination, PCWSTR Sourc
 	return STATUS_SUCCESS;
 }
 
-inline VOID FreeUnicodeString(PUNICODE_STRING UnicodeString)
+inline void FreeUnicodeString(PUNICODE_STRING UnicodeString)
 {
 	if (UnicodeString && UnicodeString->Buffer) {
 		// Use tracked free

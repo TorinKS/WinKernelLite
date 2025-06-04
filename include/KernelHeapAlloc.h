@@ -70,13 +70,23 @@ HANDLE g_HeapHandle = NULL;
 CRITICAL_SECTION g_MemoryTrackingLock;  // For thread safety
 
 // Initialize heap and tracking
-inline void InitHeap()
+inline BOOL InitHeap()
 {
     g_HeapHandle = GetProcessHeap();
+    if (!g_HeapHandle) {
+        return FALSE;
+    }
+
     InitializeCriticalSection(&g_MemoryTrackingLock);
     
-    // Initialize tracking array
+    // Initialize tracking array and counters
     ZeroMemory(g_MemoryAllocations, sizeof(g_MemoryAllocations));
+    g_AllocationCount = 0;
+    g_TotalBytesAllocated = 0;
+    g_CurrentBytesAllocated = 0;
+    g_PeakBytesAllocated = 0;
+
+    return TRUE;
 }
 
 // Clean up tracking resources
