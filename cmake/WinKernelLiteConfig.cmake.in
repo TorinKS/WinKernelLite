@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+# This config file will define the following variables:
+# - WinKernelLite_FOUND - True if the library was found
+# - WinKernelLite_INCLUDE_DIRS - Include directories for the library
+# - WinKernelLite::WinKernelLite - The imported target to use
+
+# Import targets with namespace
+include("${CMAKE_CURRENT_LIST_DIR}/WinKernelLiteTargets.cmake")
+
+# Define legacy variables for backward compatibility
+set(WinKernelLite_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../../include")
+
+# Verify components
+check_required_components(WinKernelLite)
