@@ -63,14 +63,35 @@ cmake --build build
 # Install (this will install all components including GoogleTest)
 cmake --install build
 
-# Install only WinKernelLite components without GoogleTest
-cmake --install build --component WinKernelLite
-
 # Alternative: Using the custom target
 cmake --build build --target install_winkernellite
 ```
 
 For detailed information on using the WinKernelLite package in your own projects, see [Package Usage Guide](docs/package_usage.md).
+
+## Examples
+
+The project includes several examples demonstrating how to use WinKernelLite in real-world scenarios:
+
+1. **Basic Version Info** - Shows how to access version information from the library
+2. **Devices List** - Demonstrates managing device information using linked lists and UNICODE_STRING
+   - [DevicesList Documentation](docs/example_devices_list.md)
+3. **UNICODE_STRING Handling** - Examples of working with Windows kernel-style Unicode strings
+   - [UNICODE_STRING Guide](docs/working_with_unicode_string.md)
+
+To build and run the examples:
+
+```bash
+# Configure the project
+cmake -B build -S .
+
+# Build all examples
+cmake --build build --target build_all_examples
+
+# Run a specific example
+cd examples/DevicesExample
+./build_and_run.bat
+```
 
 ## Versioning
 

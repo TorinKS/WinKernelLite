@@ -36,11 +36,11 @@ else()
   set(PROJECT_VERSION_PATCH 0)
 endif()
 
-project(WinKernelLite 
+project(WinKernelSimLite 
   VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
   LANGUAGES C CXX)
 
-message(STATUS "WinKernelLite version: ${PROJECT_VERSION}")
+message(STATUS "WinKernelSimLite version: ${PROJECT_VERSION}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,13 +64,13 @@ set(HEADER_FILES
 # Configure version header file
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelLite/Version.h"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelSimLite/Version.h"
     @ONLY
 )
 
 # Create header-only library
-add_library(WinKernelLite INTERFACE)
-target_sources(WinKernelLite 
+add_library(WinKernelSimLite INTERFACE)
+target_sources(WinKernelSimLite 
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/KernelHeapAlloc.h>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/LinkedList.h>
@@ -81,14 +81,14 @@ target_sources(WinKernelLite
 # Set up include directories properly
 # - For build tree, we need the original include directory and the generated include directory
 # - For install tree, we need the installed include directory
-target_include_directories(WinKernelLite INTERFACE
+target_include_directories(WinKernelSimLite INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
 # Create an alias target for use in the build tree
-add_library(WinKernelLite::WinKernelLite ALIAS WinKernelLite)
+add_library(WinKernelSimLite::WinKernelSimLite ALIAS WinKernelSimLite)
 
 # Organize headers in Visual Studio solution
 source_group(
@@ -192,40 +192,40 @@ endif()
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-# Install header files to include/WinKernelLite/
+# Install header files to include/WinKernelSimLite/
 install(DIRECTORY include/ 
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelLite
-    COMPONENT WinKernelLite
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelSimLite
+    COMPONENT WinKernelSimLite
     FILES_MATCHING PATTERN "*.h"
 )
 
 # Install generated version header
 install(FILES 
-    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelLite/Version.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelLite
-    COMPONENT WinKernelLite
+    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelSimLite/Version.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelSimLite
+    COMPONENT WinKernelSimLite
 )
 
 # Install targets with proper include directory path
-install(TARGETS WinKernelLite
-    EXPORT WinKernelLiteTargets
-    COMPONENT WinKernelLite
+install(TARGETS WinKernelSimLite
+    EXPORT WinKernelSimLiteTargets
+    COMPONENT WinKernelSimLite
 )
 
 # Export the targets
-install(EXPORT WinKernelLiteTargets
-    FILE WinKernelLiteTargets.cmake
-    NAMESPACE WinKernelLite::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WinKernelLite
-    COMPONENT WinKernelLite
+install(EXPORT WinKernelSimLiteTargets
+    FILE WinKernelSimLiteTargets.cmake
+    NAMESPACE WinKernelSimLite::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WinKernelSimLite
+    COMPONENT WinKernelSimLite
 )
 
-# Add a custom install target that only installs WinKernelLite components
-add_custom_target(install_WinKernelLite
+# Add a custom install target that only installs WinKernelSimLite components
+add_custom_target(install_winkernelsimlite
     COMMAND ${CMAKE_COMMAND} 
-        -DCMAKE_INSTALL_COMPONENT=WinKernelLite
+        -DCMAKE_INSTALL_COMPONENT=WinKernelSimLite
         -P "${CMAKE_BINARY_DIR}/cmake_install.cmake"
-    COMMENT "Installing WinKernelLite components only"
+    COMMENT "Installing WinKernelSimLite components only"
 )
 
 # Generate the version file
