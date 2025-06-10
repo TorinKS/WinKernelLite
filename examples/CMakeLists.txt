@@ -8,8 +8,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(WinKernelLite REQUIRED)
 
 # Simple version info example
-add_executable(version_info version_info.c)
-target_link_libraries(version_info PRIVATE WinKernelLite::WinKernelLite)
+# add_executable(version_info version_info.c)
+# target_link_libraries(version_info PRIVATE WinKernelLite::WinKernelLite)
 
 # Add DevicesList example if the directory exists
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/DevicesList/CMakeLists.txt")
@@ -27,15 +27,15 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/DevicesExample/CMakeLists.txt")
 endif()
 
 # Set output directory for all examples
-set_target_properties(version_info PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/examples"
-)
+# set_target_properties(version_info PROPERTIES
+#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/examples"
+# )
 
 # Install examples
-install(TARGETS version_info
-    RUNTIME DESTINATION bin/examples
-    COMPONENT Examples
-)
+# install(TARGETS version_info
+#     RUNTIME DESTINATION bin/examples
+#     COMPONENT Examples
+# )
 
 # Add a custom target to build all examples
 add_custom_target(build_all_examples ALL
