@@ -67,13 +67,15 @@ set_target_properties(devices_list PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# Install configuration
-install(TARGETS devices_list
-    CONFIGURATIONS Debug Release
-    RUNTIME DESTINATION bin/examples
-    PUBLIC_HEADER DESTINATION include/examples/DevicesList
-    COMPONENT Examples
-)
+# Install configuration - only if INSTALL_EXAMPLES is ON
+if(INSTALL_EXAMPLES)
+    install(TARGETS devices_list
+        CONFIGURATIONS Debug Release
+        RUNTIME DESTINATION bin/examples
+        PUBLIC_HEADER DESTINATION include/examples/DevicesList
+        COMPONENT Examples
+    )
+endif()
 
 # Add a custom target for packaging
 if(WIN32)

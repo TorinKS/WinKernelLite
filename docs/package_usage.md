@@ -59,6 +59,27 @@ cmake -B build -DCMAKE_PREFIX_PATH="C:/Program Files (x86)/WinKernelLite"
 cmake --build build
 ```
 
+### Installation Options
+
+WinKernelLite provides several installation options:
+
+1. **Install only the library (default)**:
+   ```bash
+   cmake -B build -DINSTALL_EXAMPLES=OFF
+   cmake --build build --target install
+   ```
+
+2. **Install the library and examples**:
+   ```bash
+   cmake -B build -DINSTALL_EXAMPLES=ON
+   cmake --build build --target install
+   ```
+
+3. **Install only specific components**:
+   ```bash
+   cmake --build build --target install_WinKernelLite
+   ```
+
 ### Using the Utility Scripts
 
 WinKernelLite provides several utility scripts to help with finding and setting up the library:

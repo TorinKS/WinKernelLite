@@ -21,9 +21,11 @@ set_target_properties(version_info_extended PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# Install the example
-install(TARGETS version_info_extended
-    CONFIGURATIONS Debug Release
-    RUNTIME DESTINATION bin/examples
-    COMPONENT Examples
-)
+# Install the example only if INSTALL_EXAMPLES is ON
+if(INSTALL_EXAMPLES)
+    install(TARGETS version_info_extended
+        CONFIGURATIONS Debug Release
+        RUNTIME DESTINATION bin/examples
+        COMPONENT Examples
+    )
+endif()

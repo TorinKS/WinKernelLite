@@ -8,6 +8,13 @@ This guide explains how to build and run the examples included with the WinKerne
 - Visual Studio 2019 or later with C/C++ development tools
 - WinKernelLite library installed (or built from source)
 
+## Build vs. Install
+
+By default, examples are built but not installed to Program Files:
+
+- Examples are always built in the build directory: `build/bin/examples`
+- You can choose whether to install them using the `INSTALL_EXAMPLES` option
+
 ## Setup Environment
 
 Before building the examples, it's recommended to run the environment setup script:
@@ -54,6 +61,30 @@ You can build all examples at once using:
 cd examples
 .\run_all_examples.bat
 ```
+
+## Installation Options
+
+### Building Without Installing Examples (Default)
+
+This option builds the examples but doesn't install them to Program Files:
+
+```bash
+cmake -B build -DINSTALL_EXAMPLES=OFF
+cmake --build build --target install
+```
+
+The examples will still be available in the `build/bin` directory.
+
+### Building and Installing Examples
+
+If you want to install the examples along with the library:
+
+```bash
+cmake -B build -DINSTALL_EXAMPLES=ON
+cmake --build build --target install
+```
+
+This will install the examples to `C:/Program Files (x86)/WinKernelLite/bin/examples`.
 
 ## Common Issues and Solutions
 

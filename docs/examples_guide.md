@@ -10,6 +10,27 @@ WinKernelLite includes several examples that demonstrate different aspects of th
 2. **DevicesList** - A more complex example demonstrating linked lists and device management
 3. **DevicesExample** - An enhanced example building on the DevicesList concepts with more features
 
+## Building and Installing Examples
+
+By default, WinKernelLite is configured to build examples but not install them to Program Files:
+
+```bash
+# Default - Build but don't install examples
+cmake -B build -DINSTALL_EXAMPLES=OFF
+cmake --build build --target install
+```
+
+If you want to install examples:
+
+```bash
+# Build and install examples
+cmake -B build -DINSTALL_EXAMPLES=ON
+cmake --build build --target install
+```
+
+For more detailed information about example installation options, see:
+- [Examples Installation Guide](examples_installation.md)
+
 ## Running the Examples
 
 You can run all examples at once using the provided batch file:

@@ -45,8 +45,10 @@ set_target_properties(devices_example PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# Install the example (optional)
-install(TARGETS devices_example
-    RUNTIME DESTINATION bin/examples
-    COMPONENT Examples
-)
+# Install the example only if INSTALL_EXAMPLES is ON
+if(INSTALL_EXAMPLES)
+    install(TARGETS devices_example
+        RUNTIME DESTINATION bin/examples
+        COMPONENT Examples
+    )
+endif()

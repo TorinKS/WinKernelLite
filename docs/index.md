@@ -7,6 +7,7 @@ Welcome to the WinKernelLite documentation. This index provides links to all ava
 - [README](../README.md) - Overview and basic usage
 - [Package Usage Guide](package_usage.md) - How to use WinKernelLite in your projects
 - [Building Examples](building_examples.md) - Guide to building the included examples
+- [Examples Installation](examples_installation.md) - Detailed guide on examples installation options
 - [Include Path Resolution](include_path_resolution.md) - How include path issues were resolved
 
 ## Core Concepts
@@ -77,6 +78,9 @@ WinKernelLite provides the following key components:
 
 WinKernelLite includes several diagnostic scripts to help with troubleshooting:
 
+- `diagnostics.bat` - Comprehensive diagnostic tool
+- `test_example_installation.bat` - Tests installation options
+- `test_example_execution.bat` - Tests example functionality
 - `Diagnose-Package.ps1` - PowerShell script to diagnose package installation issues
 - `diagnose_install.bat` - Batch script to check installation paths
 - `debug_install_paths.bat` - Script to debug installation path issues

@@ -46,12 +46,14 @@ echo.
 echo Running Version Info Example:
 echo ----------------------------
 echo.
-if exist bin\examples\Debug\version_info.exe (
-    bin\examples\Debug\version_info.exe
-) else if exist Debug\version_info.exe (
-    Debug\version_info.exe
+if exist bin\Debug\version_info_extended.exe (
+    bin\Debug\version_info_extended.exe
+) else if exist bin\version_info_extended.exe (
+    bin\version_info_extended.exe
+) else if exist Debug\version_info_extended.exe (
+    Debug\version_info_extended.exe
 ) else (
-    echo Could not find version_info executable.
+    echo Could not find version_info_extended executable.
 )
 
 echo.
@@ -68,13 +70,21 @@ echo.
 echo Running DevicesList Example:
 echo -------------------------
 echo.
-cd ..\DevicesList
-if exist build_and_run.bat (
-    call build_and_run.bat
+if exist bin\Debug\devices_list.exe (
+    bin\Debug\devices_list.exe
+) else if exist bin\devices_list.exe (
+    bin\devices_list.exe
+) else if exist ..\DevicesList\build\Debug\devices_list.exe (
+    ..\DevicesList\build\Debug\devices_list.exe
 ) else (
-    echo build_and_run.bat not found for DevicesList example.
+    cd ..\DevicesList
+    if exist build_and_run.bat (
+        call build_and_run.bat
+    ) else (
+        echo build_and_run.bat not found for DevicesList example.
+    )
+    cd ..\build
 )
-cd ..\build
 
 echo.
 echo All examples completed.

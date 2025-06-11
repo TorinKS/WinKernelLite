@@ -30,6 +30,40 @@ For more detailed information, please refer to:
 - [Building Examples](docs/building_examples.md) - Guide to building the included examples
 - [Examples Guide](docs/examples_guide.md) - Overview of all included examples
 - [Working with UNICODE_STRING](docs/working_with_unicode_string.md) - Guide to Unicode string handling
+- [Include Path Resolution](docs/include_path_resolution.md) - How include path issues were resolved
+- [Build Improvements](docs/build_improvements.md) - Summary of build system improvements
+
+## Installation
+
+### Default Installation (Library Only)
+
+By default, WinKernelLite installs only the library files and not the examples:
+
+```bash
+cmake -B build -DINSTALL_EXAMPLES=OFF
+cmake --build build --target install
+```
+
+### Installing with Examples
+
+If you want to install the examples as well:
+
+```bash
+cmake -B build -DINSTALL_EXAMPLES=ON
+cmake --build build --target install
+```
+
+For more installation options, run `install_guide.bat`.
+
+### Diagnostic Tools
+
+The repository includes several diagnostic tools to help troubleshoot build and installation issues:
+
+- **diagnostics.bat** - Comprehensive diagnostic tool that checks your environment, build configurations, and validates both build and installation
+- **test_example_installation.bat** - Tests that the INSTALL_EXAMPLES option works correctly
+- **test_example_execution.bat** - Verifies that examples build and run correctly from the build directory
+
+Run these tools if you experience any issues with building or installing WinKernelLite.
 
 ## Usage with CMake
 

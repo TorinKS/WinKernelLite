@@ -180,8 +180,10 @@ add_test(NAME runTests COMMAND runTests)
 
 # Examples
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(INSTALL_EXAMPLES "Install example programs" OFF)
 
 if(BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/CMakeLists.txt")
+    # Pass the INSTALL_EXAMPLES option to the examples subdirectory
     add_subdirectory(examples)
 endif()
 
