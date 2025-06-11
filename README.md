@@ -22,6 +22,15 @@ Currently, the library implements core functionality related to doubly-linked li
 - Unicode string handling utilities
 - Automatic versioning from Git tags
 
+## Documentation
+
+For more detailed information, please refer to:
+
+- [Package Usage Guide](docs/package_usage.md) - How to use WinKernelLite in your own projects
+- [Building Examples](docs/building_examples.md) - Guide to building the included examples
+- [Examples Guide](docs/examples_guide.md) - Overview of all included examples
+- [Working with UNICODE_STRING](docs/working_with_unicode_string.md) - Guide to Unicode string handling
+
 ## Usage with CMake
 
 ### Using find_package

@@ -6,6 +6,8 @@ Welcome to the WinKernelLite documentation. This index provides links to all ava
 
 - [README](../README.md) - Overview and basic usage
 - [Package Usage Guide](package_usage.md) - How to use WinKernelLite in your projects
+- [Building Examples](building_examples.md) - Guide to building the included examples
+- [Include Path Resolution](include_path_resolution.md) - How include path issues were resolved
 
 ## Core Concepts
 

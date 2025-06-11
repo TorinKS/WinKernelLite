@@ -59,6 +59,25 @@ cmake -B build -DCMAKE_PREFIX_PATH="C:/Program Files (x86)/WinKernelLite"
 cmake --build build
 ```
 
+### Using the Utility Scripts
+
+WinKernelLite provides several utility scripts to help with finding and setting up the library:
+
+1. **setup_examples_env.bat**: Sets up environment variables and directory structure for building examples
+   ```bash
+   .\setup_examples_env.bat
+   ```
+
+2. **test_include_paths.bat**: Tests if the compiler can find the header files 
+   ```bash
+   .\test_include_paths.bat
+   ```
+
+3. **diagnose_install.bat**: Diagnoses installation issues
+   ```bash
+   .\diagnose_install.bat
+   ```
+
 ## Troubleshooting
 
 If you encounter issues with finding the WinKernelLite package:

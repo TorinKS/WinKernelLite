@@ -13,5 +13,17 @@ get_target_property(WINKERNELLITE_INCLUDE_DIRS WinKernelLite::WinKernelLite INTE
 message(STATUS "WinKernelLite include directories: ${WINKERNELLITE_INCLUDE_DIRS}")
 
 # Version info example
-add_executable(version_info version_info.c)
-target_link_libraries(version_info PRIVATE WinKernelLite::WinKernelLite)
+add_executable(version_info_extended version_info.c)
+target_link_libraries(version_info_extended PRIVATE WinKernelLite::WinKernelLite)
+
+# Set output directory
+set_target_properties(version_info_extended PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Install the example
+install(TARGETS version_info_extended
+    CONFIGURATIONS Debug Release
+    RUNTIME DESTINATION bin/examples
+    COMPONENT Examples
+)

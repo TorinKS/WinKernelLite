@@ -4,8 +4,28 @@ project(WinKernelLiteExamples C)
 # Add examples directory to module path so we can include sub-examples
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# Set the CMAKE_PREFIX_PATH to include the install directory and parent build directory
+set(CMAKE_PREFIX_PATH 
+    "${CMAKE_PREFIX_PATH};C:/Program Files (x86)/WinKernelLite;${CMAKE_CURRENT_SOURCE_DIR}/../build"
+)
+
 # Find the WinKernelLite package
 find_package(WinKernelLite REQUIRED)
+
+# Print debugging information for WinKernelLite
+message(STATUS "Found WinKernelLite: ${WinKernelLite_FOUND}")
+if(TARGET WinKernelLite::WinKernelLite)
+    get_target_property(WKL_INCLUDE_DIRS WinKernelLite::WinKernelLite INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "WinKernelLite include directories: ${WKL_INCLUDE_DIRS}")
+endif()
+
+# Include directories that all examples will use
+include_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../build/include"
+    "${CMAKE_CURRENT_BINARY_DIR}/../include"
+    "C:/Program Files (x86)/WinKernelLite/include"
+)
 
 # Simple version info example
 # add_executable(version_info version_info.c)
@@ -39,7 +59,6 @@ endif()
 
 # Add a custom target to build all examples
 add_custom_target(build_all_examples ALL
-    DEPENDS version_info
     COMMENT "Building all examples"
 )
 
@@ -58,8 +77,6 @@ endif()
 
 # Add custom target to run all examples
 add_custom_target(run_all_examples
-    COMMAND version_info
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/examples"
     COMMENT "Running all examples"
     DEPENDS build_all_examples
 )

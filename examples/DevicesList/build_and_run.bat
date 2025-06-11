@@ -1,5 +1,5 @@
 @echo off
-echo Building and running the Devices Example...
+echo Building and running the DevicesList Example...
 
 :: Create a build directory
 if not exist build mkdir build
@@ -34,10 +34,10 @@ echo.
 echo Running the example:
 echo ===================
 echo.
-if exist Debug\devices_example.exe (
-    Debug\devices_example.exe
-) else if exist bin\Debug\devices_example.exe (
-    bin\Debug\devices_example.exe
+if exist Debug\devices_list.exe (
+    Debug\devices_list.exe
+) else if exist bin\Debug\devices_list.exe (
+    bin\Debug\devices_list.exe
 ) else (
     echo Could not find the example executable.
     cd ..

@@ -17,7 +17,6 @@ if(GIT_FOUND)
     set(GIT_TAG "1.0.0")
   else()
     message(STATUS "Git tag found: ${GIT_TAG}")
-    # Remove 'v' prefix if present
     string(REGEX REPLACE "^v" "" GIT_TAG ${GIT_TAG})
   endif()
 else()
@@ -36,11 +35,11 @@ else()
   set(PROJECT_VERSION_PATCH 0)
 endif()
 
-project(WinKernelSimLite 
+project(WinKernelLite 
   VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
   LANGUAGES C CXX)
 
-message(STATUS "WinKernelSimLite version: ${PROJECT_VERSION}")
+message(STATUS "WinKernelLite version: ${PROJECT_VERSION}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,7 +49,7 @@ if (MSVC)
     add_compile_options(/W4)    # Warning level 4
 endif()
 
-# Set Visual Studio folder organization
+# Enable Visual Studio folder organization
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # List header files explicitly
@@ -64,13 +63,13 @@ set(HEADER_FILES
 # Configure version header file
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelSimLite/Version.h"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelLite/Version.h"
     @ONLY
 )
 
 # Create header-only library
-add_library(WinKernelSimLite INTERFACE)
-target_sources(WinKernelSimLite 
+add_library(WinKernelLite INTERFACE)
+target_sources(WinKernelLite 
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/KernelHeapAlloc.h>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/LinkedList.h>
@@ -78,17 +77,17 @@ target_sources(WinKernelSimLite
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/UnicodeStringUtils.h>
 )
 
-# Set up include directories properly
+# Set up include directories
 # - For build tree, we need the original include directory and the generated include directory
 # - For install tree, we need the installed include directory
-target_include_directories(WinKernelSimLite INTERFACE
+target_include_directories(WinKernelLite INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
 # Create an alias target for use in the build tree
-add_library(WinKernelSimLite::WinKernelSimLite ALIAS WinKernelSimLite)
+add_library(WinKernelLite::WinKernelLite ALIAS WinKernelLite)
 
 # Organize headers in Visual Studio solution
 source_group(
@@ -101,13 +100,10 @@ source_group(
 include(FetchContent)
 enable_testing()
 
-# Set external dependencies directory
 set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/extern)
 
-# Fetch and configure GoogleTest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BUILD_GMOCK OFF CACHE BOOL "Disable Google Mock" FORCE)
-# Prevent GoogleTest from being installed
 set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of Google Test" FORCE)
 
 # Save the original install prefix
@@ -120,7 +116,6 @@ FetchContent_Declare(
     SOURCE_DIR ${FETCHCONTENT_BASE_DIR}/googletest
 )
 
-# Make GTest available
 FetchContent_MakeAvailable(googletest)
 
 # Reset the install prefix to its original value
@@ -129,6 +124,7 @@ set(CMAKE_INSTALL_PREFIX ${ORIGINAL_CMAKE_INSTALL_PREFIX})
 # Configure OpenCppCoverage
 option(ENABLE_COVERAGE "Enable code coverage" ON)
 if(ENABLE_COVERAGE)
+    # It was found that installing OpenCppCoverage from source is a time-consuming process, so we use preinstalled binaries instead.
     set(OpenCppCoverage_EXECUTABLE "C:/Program Files/OpenCppCoverage/OpenCppCoverage.exe")
 
     if(OpenCppCoverage_EXECUTABLE)
@@ -138,7 +134,8 @@ if(ENABLE_COVERAGE)
         string(REPLACE "/" "\\" SOURCES_DIR "${CMAKE_SOURCE_DIR}/include")
         string(REPLACE "/" "\\" COVERAGE_DIR "${CMAKE_BINARY_DIR}/coverage")
         string(REPLACE "/" "\\" OPENCPPCOVERAGE_PATH "${OpenCppCoverage_EXECUTABLE}")
-          add_custom_target(coverage
+          
+        add_custom_target(coverage
             COMMAND ${OPENCPPCOVERAGE_PATH}
                 --export_type=html:${COVERAGE_DIR}
                 --sources=${SOURCES_DIR}
@@ -192,40 +189,64 @@ endif()
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-# Install header files to include/WinKernelSimLite/
+# Install header files to include/WinKernelLite/
 install(DIRECTORY include/ 
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelSimLite
-    COMPONENT WinKernelSimLite
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelLite
+    COMPONENT WinKernelLite
     FILES_MATCHING PATTERN "*.h"
 )
 
 # Install generated version header
 install(FILES 
-    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelSimLite/Version.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelSimLite
-    COMPONENT WinKernelSimLite
+    "${CMAKE_CURRENT_BINARY_DIR}/include/WinKernelLite/Version.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/WinKernelLite
+    COMPONENT WinKernelLite
 )
 
 # Install targets with proper include directory path
-install(TARGETS WinKernelSimLite
-    EXPORT WinKernelSimLiteTargets
-    COMPONENT WinKernelSimLite
+install(TARGETS WinKernelLite
+    EXPORT WinKernelLiteTargets
+    COMPONENT WinKernelLite
 )
+
+# For examples, we want to make the headers available during the build
+if(BUILD_EXAMPLES)
+    # Export the include directories to the examples
+    set(WinKernelLite_INCLUDE_DIRS 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+    )
+    
+    # Also make sure examples can find WinKernelLite by creating an explicit directory structure
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/include/WinKernelLite")
+    
+    # Copy headers to the build directory to create the expected structure
+    file(GLOB WKL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+    foreach(HEADER ${WKL_HEADERS})
+        get_filename_component(HEADER_NAME ${HEADER} NAME)
+        configure_file(${HEADER} "${CMAKE_BINARY_DIR}/include/WinKernelLite/${HEADER_NAME}" COPYONLY)
+    endforeach()
+    
+    # Only set to parent scope if this is not the top-level CMakeLists.txt
+    if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        set(WinKernelLite_INCLUDE_DIRS ${WinKernelLite_INCLUDE_DIRS} PARENT_SCOPE)
+    endif()
+endif()
 
 # Export the targets
-install(EXPORT WinKernelSimLiteTargets
-    FILE WinKernelSimLiteTargets.cmake
-    NAMESPACE WinKernelSimLite::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WinKernelSimLite
-    COMPONENT WinKernelSimLite
+install(EXPORT WinKernelLiteTargets
+    FILE WinKernelLiteTargets.cmake
+    NAMESPACE WinKernelLite::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WinKernelLite
+    COMPONENT WinKernelLite
 )
 
-# Add a custom install target that only installs WinKernelSimLite components
-add_custom_target(install_winkernelsimlite
+# Add a custom install target that only installs WinKernelLite components
+add_custom_target(install_WinKernelLite
     COMMAND ${CMAKE_COMMAND} 
-        -DCMAKE_INSTALL_COMPONENT=WinKernelSimLite
+        -DCMAKE_INSTALL_COMPONENT=WinKernelLite
         -P "${CMAKE_BINARY_DIR}/cmake_install.cmake"
-    COMMENT "Installing WinKernelSimLite components only"
+    COMMENT "Installing WinKernelLite components only"
 )
 
 # Generate the version file
