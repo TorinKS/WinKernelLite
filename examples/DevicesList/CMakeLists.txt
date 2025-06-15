@@ -1,20 +1,15 @@
-# CMake configuration for examples
 cmake_minimum_required(VERSION 3.15)
 project(DeviceListExample C)
 
-# Set C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Debug information
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
-# Include debugging script if available
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../debug_includes.cmake")
     include(${CMAKE_CURRENT_SOURCE_DIR}/../debug_includes.cmake)
 endif()
 
-# Find the WinKernelLite package
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/Program Files (x86)/WinKernelLite")
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/..")
 find_package(WinKernelLite REQUIRED)

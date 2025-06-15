@@ -1,11 +1,14 @@
 @echo off
 echo Building test project to verify WinKernelLite installation...
 
+REM Load environment variables including correct installation path
+call %~dp0..\set_environment.bat silent
+
 mkdir build 2>nul
 cd build
 
 echo Configuring project...
-cmake .. -DCMAKE_PREFIX_PATH="C:/Program Files (x86)/WinKernelLite"
+cmake .. -DCMAKE_PREFIX_PATH="%INSTALL_PATH%"
 if ERRORLEVEL 1 (
     echo Failed to configure test project
     cd ..

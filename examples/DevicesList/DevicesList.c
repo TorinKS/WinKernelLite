@@ -1,10 +1,7 @@
-// Include DevicesList.h which already contains all the necessary WinKernelLite headers
 #include "DevicesList.h"
 
-// Define the global device list - initialized in the .c file to avoid multiple definitions
-LIST_ENTRY gDeviceList = {0};  // Zero-initialize for safety
+LIST_ENTRY gDeviceList = {0};
 
-// Helper function to clean up a device during initialization failure
 static VOID CleanupFailedDevice(
     PDEVICE_NAME device,
     BOOLEAN cleanManufacturer,
@@ -25,7 +22,6 @@ static VOID CleanupFailedDevice(
     ExFreePool(device);
 }
 
-// Implementation of CreateDevice
 PDEVICE_NAME CreateDevice(PCWSTR manufacturer, PCWSTR product, PCWSTR serialNumber)
 {
     // Use tracked allocation

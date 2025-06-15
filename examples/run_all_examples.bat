@@ -6,12 +6,12 @@ echo ==============================================
 echo.
 
 :: First make sure the library is installed
-if not exist "C:\Program Files (x86)\WinKernelLite" (
+if not exist "%INSTALL_PATH%" (
     echo Installing WinKernelLite first...
     cd ..
     mkdir build 2>nul
     cd build
-    cmake .. -DCMAKE_INSTALL_PREFIX="C:/Program Files (x86)/WinKernelLite"
+    cmake .. -DCMAKE_INSTALL_PREFIX="%INSTALL_PATH%"
     cmake --build . --config Release
     cmake --install . --component WinKernelLite
     cd ..\examples
@@ -24,7 +24,7 @@ cd build
 
 :: Configure the examples project
 echo Configuring examples...
-cmake .. -DCMAKE_PREFIX_PATH="C:/Program Files (x86)/WinKernelLite"
+cmake .. -DCMAKE_PREFIX_PATH="%INSTALL_PATH%"
 if %ERRORLEVEL% neq 0 (
     echo Failed to configure examples.
     cd ..

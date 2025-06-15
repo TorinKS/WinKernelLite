@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.29)
 
+# Include system architecture detection
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SystemArchitectureConfig.cmake)
+
 # Git version extraction
 find_package(Git QUIET)
 if(GIT_FOUND)
@@ -124,8 +127,32 @@ set(CMAKE_INSTALL_PREFIX ${ORIGINAL_CMAKE_INSTALL_PREFIX})
 # Configure OpenCppCoverage
 option(ENABLE_COVERAGE "Enable code coverage" ON)
 if(ENABLE_COVERAGE)
-    # It was found that installing OpenCppCoverage from source is a time-consuming process, so we use preinstalled binaries instead.
-    set(OpenCppCoverage_EXECUTABLE "C:/Program Files/OpenCppCoverage/OpenCppCoverage.exe")
+    # Try to find OpenCppCoverage in various possible locations
+    set(OPENCPPCOVERAGE_SEARCH_PATHS
+        "$ENV{ProgramFiles}/OpenCppCoverage"
+        "$ENV{ProgramFiles\(x86\)}/OpenCppCoverage"
+        "$ENV{ProgramW6432}/OpenCppCoverage"
+        "$ENV{LOCALAPPDATA}/Programs/OpenCppCoverage"
+        "$ENV{ChocolateyInstall}/lib/opencppcoverage/tools"
+    )
+
+    # First check if it's specified in the environment
+    if(DEFINED ENV{OPENCPPCOVERAGE_PATH})
+        set(OpenCppCoverage_EXECUTABLE "$ENV{OPENCPPCOVERAGE_PATH}")
+    else()
+        # Search in the predefined paths
+        foreach(SEARCH_PATH ${OPENCPPCOVERAGE_SEARCH_PATHS})
+            if(EXISTS "${SEARCH_PATH}/OpenCppCoverage.exe")
+                set(OpenCppCoverage_EXECUTABLE "${SEARCH_PATH}/OpenCppCoverage.exe")
+                break()
+            endif()
+        endforeach()
+
+        # If not found in predefined paths, try to find it in PATH
+        if(NOT DEFINED OpenCppCoverage_EXECUTABLE)
+            find_program(OpenCppCoverage_EXECUTABLE "OpenCppCoverage.exe")
+        endif()
+    endif()
 
     if(OpenCppCoverage_EXECUTABLE)
         message(STATUS "Found OpenCppCoverage: ${OpenCppCoverage_EXECUTABLE}")
@@ -235,7 +262,13 @@ if(BUILD_EXAMPLES)
     endif()
 endif()
 
-# Export the targets
+# Export the targets to both build and install directories
+export(EXPORT WinKernelLiteTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/WinKernelLiteTargets.cmake"
+    NAMESPACE WinKernelLite::
+)
+
+# Install the export targets
 install(EXPORT WinKernelLiteTargets
     FILE WinKernelLiteTargets.cmake
     NAMESPACE WinKernelLite::

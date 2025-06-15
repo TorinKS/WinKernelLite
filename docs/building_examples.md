@@ -8,6 +8,15 @@ This guide explains how to build and run the examples included with the WinKerne
 - Visual Studio 2019 or later with C/C++ development tools
 - WinKernelLite library installed (or built from source)
 
+## System Compatibility
+
+WinKernelLite is designed to work on both 32-bit and 64-bit Windows systems:
+
+- On 64-bit Windows, the default installation path is `C:\Program Files (x86)\WinKernelLite`
+- On 32-bit Windows, the default installation path is `C:\Program Files\WinKernelLite`
+
+You can also set a custom installation path by setting the `WINKERNELLITE_INSTALL_PATH` environment variable.
+
 ## Build vs. Install
 
 By default, examples are built but not installed to Program Files:
@@ -24,9 +33,10 @@ Before building the examples, it's recommended to run the environment setup scri
 ```
 
 This script:
-1. Creates the correct directory structure for include files
-2. Copies header files to the build directory
-3. Sets up environment variables for CMake
+1. Sets up the correct installation path based on your system architecture
+2. Creates the correct directory structure for include files
+3. Copies header files to the build directory
+4. Sets up environment variables for CMake
 
 ## Building Examples Individually
 

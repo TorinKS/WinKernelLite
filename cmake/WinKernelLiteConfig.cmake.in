@@ -6,10 +6,25 @@
 # - WinKernelLite::WinKernelLite - The imported target to use
 
 # Import targets with namespace
-include("${CMAKE_CURRENT_LIST_DIR}/WinKernelLiteTargets.cmake")
+if(NOT TARGET WinKernelLite::WinKernelLite)
+    include("${CMAKE_CURRENT_LIST_DIR}/WinKernelLiteTargets.cmake" OPTIONAL RESULT_VARIABLE WinKernelLite_TARGETS)
+    if(NOT WinKernelLite_TARGETS)
+        # If not found in install dir, try build dir
+        set(_build_dir "@CMAKE_BINARY_DIR@")
+        if(EXISTS "${_build_dir}/WinKernelLiteTargets.cmake")
+            include("${_build_dir}/WinKernelLiteTargets.cmake")
+        else()
+            message(FATAL_ERROR "WinKernelLiteTargets.cmake not found. Please check your installation.")
+        endif()
+    endif()
+endif()
 
 # Define legacy variables for backward compatibility
-set(WinKernelLite_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../../include")
+if(IS_ABSOLUTE "@CMAKE_INSTALL_PREFIX@/include")
+    set(WinKernelLite_INCLUDE_DIRS "@CMAKE_INSTALL_PREFIX@/include")
+else()
+    set(WinKernelLite_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../../include")
+endif()
 
 # Verify components
 check_required_components(WinKernelLite)

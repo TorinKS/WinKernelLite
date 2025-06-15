@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(WinKernelLiteTest)
 
 # Find WinKernelLite
-set(CMAKE_PREFIX_PATH "C:/Program Files (x86)/WinKernelLite")
+# CMAKE_PREFIX_PATH should be passed from command line or environment
 find_package(WinKernelLite REQUIRED)
 
 # Print debugging information

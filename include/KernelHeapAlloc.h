@@ -23,7 +23,7 @@ typedef enum _POOL_TYPE {
 
 /*
 This defines the maximum number of allocations to track. 
-We use a simple implementation with a static-length array rather than dynamic data structures
+We use a simple implementation with a static-length array
 */
 #define MAX_ALLOCATIONS 20000
 

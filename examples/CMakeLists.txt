@@ -1,25 +1,20 @@
 cmake_minimum_required(VERSION 3.15)
 project(WinKernelLiteExamples C)
 
-# Add examples directory to module path so we can include sub-examples
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# Check if we should install examples
 if(NOT DEFINED INSTALL_EXAMPLES)
-    # Get it from parent scope if not defined
     set(INSTALL_EXAMPLES OFF)
 endif()
 message(STATUS "INSTALL_EXAMPLES: ${INSTALL_EXAMPLES}")
 
-# Set the CMAKE_PREFIX_PATH to include the install directory and parent build directory
 set(CMAKE_PREFIX_PATH 
     "${CMAKE_PREFIX_PATH};C:/Program Files (x86)/WinKernelLite;${CMAKE_CURRENT_SOURCE_DIR}/../build"
 )
 
-# Find the WinKernelLite package
 find_package(WinKernelLite REQUIRED)
 
-# Print debugging information for WinKernelLite
+message(STATUS "Found WinKernelLite: ${WinKernelLite_FOUND}")
 message(STATUS "Found WinKernelLite: ${WinKernelLite_FOUND}")
 if(TARGET WinKernelLite::WinKernelLite)
     get_target_property(WKL_INCLUDE_DIRS WinKernelLite::WinKernelLite INTERFACE_INCLUDE_DIRECTORIES)

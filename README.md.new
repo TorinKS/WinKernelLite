@@ -10,20 +10,18 @@ For example, in a typical case, Windows kernel developers of security solutions 
 - User mode code, including Windows services that interact with the kernel mode through one of the available methods: private IOCTLs, minifilter driver communication ports, etc.
 One of the most significant parts of the code in drivers is the code that implements application logic for working with data, passing it to user mode, and so on.
 This library serves as a foundation that can be extended as needed to debug and test this part of the kernel mode code in user mode.
-It's not trivial to guarantee that this code works in the same way as Windows kernel mode API due to various reasons, such as the unavailability of Windows kernel source code (except for some parts in WRK).
+Take into account that it's not trivial to guarantee that this code works in the same way as Windows kernel mode API due to various reasons, such as the unavailability of Windows kernel source code (except for some parts in WRK).
 
 ## Project Goals
 
-While Microsoft provides the Windows Research Kernel (WRK) for academic purposes, kernel internals remain closed-source, making it difficult to understand the exact implementation details behind kernel functions. Additionally, testing kernel code often requires complex setups and can lead to system crashes during development.
+While Microsoft provides the Windows Research Kernel (WRK) for academic purposes, the kernel internals remain closed-source, making it difficult to understand the exact implementation details behind kernel functions. Additionally, testing and debugging kernel code is complex and often slow.
 
 WinKernelLite addresses these challenges by:
 
-1. **Simplified Testing Environment**: Allowing developers to test kernel-style code in user mode without risking system stability
+1. **Simplified Testing Environment**: Allowing developers to test kernel-style code in user mode you just need to include required header files
 2. **Improved Development Workflow**: Enabling the use of standard debugging tools and testing frameworks not available in kernel mode
 3. **Consistent API**: Providing implementations that try to match kernel functionality while working in user-mode contexts
 4. **Reference Implementation**: Serving as a learning resource for understanding Windows kernel programming patterns
-
-Currently, the library implements core functionality related to doubly-linked lists (LIST_ENTRY structure), memory allocation with pool tracking, and UNICODE_STRING manipulation - common elements used throughout Windows kernel development.
 
 ## Features
 

@@ -1,26 +1,19 @@
-#define WIN32_NO_STATUS // Define this before Windows.h to prevent it from defining NT status codes
+#define WIN32_NO_STATUS
 #include <Windows.h>
-// Skip winternl.h since it would cause redefinition of UNICODE_STRING
-// #include <winternl.h>
-#undef WIN32_NO_STATUS // Undefine it so we can include ntstatus.h next
-#include <ntstatus.h>  // Now include the complete set of NT status codes
+#undef WIN32_NO_STATUS
+#include <ntstatus.h>
 #include <stdio.h>
 
-// Include the DevicesList.h header first as it already includes the WinKernelLite headers
 #include "DevicesList.h"
 #include "WinKernelLite/UnicodeStringUtils.h"
 
 #pragma comment(lib, "ntdll.lib")
 
-// Declare the memory leak tracking functions
 extern void PrintMemoryLeaks(void);
 extern void CleanupHeap(void);
 
-// Add a deliberate memory leak for demonstration
 void CreateMemoryLeak() {
-    // This memory is never freed - will be reported as a leak
     PVOID leakedMemory = ExAllocatePoolTracked(PagedPool, 1024);
-    // We're intentionally not freeing this to demonstrate leak detection
     printf("Created a deliberate memory leak of 1024 bytes\n");
 }
 

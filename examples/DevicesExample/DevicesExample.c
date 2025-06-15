@@ -1,31 +1,26 @@
-// DevicesExample.c - Example program demonstrating the DevicesList API
 #define WIN32_NO_STATUS
 #include <Windows.h>
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 #include <stdio.h>
 
-// Include WinKernelLite headers
 #include <WinKernelLite/KernelHeapAlloc.h>
 #include <WinKernelLite/LinkedList.h>
 #include <WinKernelLite/UnicodeString.h>
 #include <WinKernelLite/UnicodeStringUtils.h>
 #include <WinKernelLite/Version.h>
 
-// Define our device structure
 typedef struct _DEVICE_INFO {
-    LIST_ENTRY ListEntry;             // For linking in the list
-    UNICODE_STRING DeviceName;        // Name of the device
-    UNICODE_STRING DeviceId;          // Unique ID
-    UNICODE_STRING Manufacturer;      // Manufacturer name
-    ULONG DeviceType;                 // Type of device
-    BOOLEAN IsConnected;              // Whether device is currently connected
+    LIST_ENTRY ListEntry;
+    UNICODE_STRING DeviceName;
+    UNICODE_STRING DeviceId;
+    UNICODE_STRING Manufacturer;
+    ULONG DeviceType;
+    BOOLEAN IsConnected;
 } DEVICE_INFO, *PDEVICE_INFO;
 
-// Global list of devices
 LIST_ENTRY g_DeviceList;
 
-// Function to create a new device
 PDEVICE_INFO CreateDeviceInfo(
     PCWSTR name,
     PCWSTR id,

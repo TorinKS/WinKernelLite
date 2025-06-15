@@ -1,30 +1,16 @@
 #pragma once
 
-/**
- * @file DevicesList.h
- * @brief Provides a way to manage device information in a linked list.
- * 
- * This header file defines the structures and functions for managing 
- * devices in a linked list. It provides functions for creating, manipulating,
- * and freeing devices, as well as for managing a list of devices.
- */
-
-// Use the same include pattern as in test.c to prevent redefinition warnings
-#define WIN32_NO_STATUS // Define this before Windows.h to prevent it from defining NT status codes
+#define WIN32_NO_STATUS
 #include <Windows.h>
-// #include <winternl.h>
-#undef WIN32_NO_STATUS // Undefine it so we can include ntstatus.h next
-#include <ntstatus.h>  // Now include the complete set of NT status codes
-#include <stdio.h>  // For printf
+#undef WIN32_NO_STATUS
+#include <ntstatus.h>
+#include <stdio.h>
 #include "WinKernelLite/KernelHeapAlloc.h"
 #include "WinKernelLite/LinkedList.h"
 #include "WinKernelLite/UnicodeString.h"
 
-
-// Define DebugPrint as a macro that uses printf
 #define DebugPrint(x) printf x
 
-// Global device list
 extern LIST_ENTRY gDeviceList;
 
 typedef struct _DEVICE_NAME

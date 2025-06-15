@@ -9,6 +9,7 @@ Welcome to the WinKernelLite documentation. This index provides links to all ava
 - [Building Examples](building_examples.md) - Guide to building the included examples
 - [Examples Installation](examples_installation.md) - Detailed guide on examples installation options
 - [Include Path Resolution](include_path_resolution.md) - How include path issues were resolved
+- [System Compatibility](system_compatibility.md) - Guide to x86/x64 system compatibility
 
 ## Core Concepts
 

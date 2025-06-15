@@ -1,6 +1,9 @@
 @echo off
 echo Building and running the VersionInfo Example...
 
+REM Load environment variables including correct installation path
+call %~dp0..\..\set_environment.bat silent
+
 :: Create a build directory
 if not exist build mkdir build
 cd build
@@ -9,7 +12,7 @@ cd build
 echo Configuring project...
 
 :: Set include paths for both install dir and source build 
-set CMAKE_PREFIX_PATH=C:/Program Files (x86)/WinKernelLite;../../build
+set CMAKE_PREFIX_PATH=%INSTALL_PATH%;../../build
 set CMAKE_MODULE_PATH=../../examples
 
 :: Configure with both paths
