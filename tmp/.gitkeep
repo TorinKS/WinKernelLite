@@ -1,0 +1,3 @@
+# This file ensures the tmp directory is tracked by git
+# The tmp directory is used for generating reports and temporary files
+# See .gitignore for files that are excluded from version control

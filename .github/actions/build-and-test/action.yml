@@ -1,0 +1,254 @@
+name: 'Build and Test WinKernelLite'
+description: 'Builds WinKernelLite project and runs tests with consistent configuration'
+
+inputs:
+  build-type:
+    description: 'Build configuration (Debug or Release)'
+    required: false
+    default: 'Debug'
+  enable-testing:
+    description: 'Enable building and running tests'
+    required: false
+    default: 'true'
+  enable-examples:
+    description: 'Enable building examples'
+    required: false
+    default: 'false'
+  upload-artifacts:
+    description: 'Whether to upload build artifacts'
+    required: false
+    default: 'false'
+  artifact-name:
+    description: 'Name for uploaded artifacts'
+    required: false
+    default: 'build-artifacts'
+  upload-test-results:
+    description: 'Whether to upload test results'
+    required: false
+    default: 'false'
+  test-results-name:
+    description: 'Name for uploaded test results'
+    required: false
+    default: 'test-results'
+  publish-test-results:
+    description: 'Whether to publish test results to PR'
+    required: false
+    default: 'false'
+
+outputs:
+  build-path:
+    description: 'Path to the build directory'
+    value: ${{ steps.build-info.outputs.build-path }}
+  binary-path:
+    description: 'Path to the binary directory'
+    value: ${{ steps.build-info.outputs.binary-path }}
+  test-executable:
+    description: 'Path to the test executable'
+    value: ${{ steps.build-info.outputs.test-executable }}
+  tests-passed:
+    description: 'Whether all tests passed'
+    value: ${{ steps.run-tests.outputs.tests-passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.29'
+
+    - name: Configure CMake
+      shell: powershell
+      run: |
+        $buildType = "${{ inputs.build-type }}"
+        $enableTesting = "${{ inputs.enable-testing }}" -eq "true"
+        $enableExamples = "${{ inputs.enable-examples }}" -eq "true"
+        
+        Write-Host "Configuring CMake for $buildType build"
+        Write-Host "  Testing: $enableTesting"
+        Write-Host "  Examples: $enableExamples"
+        
+        $cmakeArgs = @(
+          "-B", "build",
+          "-S", ".",
+          "-DCMAKE_BUILD_TYPE=$buildType"
+        )
+        
+        if ($enableTesting) {
+          $cmakeArgs += "-DBUILD_TESTING=ON"
+        } else {
+          $cmakeArgs += "-DBUILD_TESTING=OFF"
+        }
+        
+        if ($enableExamples) {
+          $cmakeArgs += "-DBUILD_EXAMPLES=ON"
+        }
+        
+        Write-Host "CMake command: cmake $($cmakeArgs -join ' ')"
+        & cmake @cmakeArgs
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "CMake configuration failed with exit code $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+        Write-Host "CMake configuration completed successfully"
+
+    - name: Build WinKernelLite
+      shell: powershell
+      run: |
+        $buildType = "${{ inputs.build-type }}"
+        Write-Host "Starting $buildType build"
+        
+        # Use parallel build with all available cores
+        $cores = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+        Write-Host "Building with $cores parallel jobs"
+        cmake --build build --config $buildType --parallel $cores
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "Build completed successfully"
+        } else {
+          Write-Host "Build failed with exit code $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+
+    - name: Set build information outputs
+      id: build-info
+      shell: powershell
+      run: |
+        $buildType = "${{ inputs.build-type }}"
+        $buildPath = "build"
+        $binaryPath = "build\bin"
+        $testExe = "build\bin\runTests.exe"
+        
+        # Verify build artifacts exist
+        if (Test-Path $buildPath) {
+          Write-Host "Build directory exists: $buildPath"
+        } else {
+          Write-Host "ERROR: Build directory not found: $buildPath"
+          exit 1
+        }
+        
+        if (Test-Path $binaryPath) {
+          Write-Host "Binary directory exists: $binaryPath"
+          Write-Host "Binary contents:"
+          Get-ChildItem $binaryPath | ForEach-Object { Write-Host "  $($_.Name)" }
+        } else {
+          Write-Host "WARNING: Binary directory not found: $binaryPath"
+        }
+        
+        if (Test-Path $testExe) {
+          Write-Host "Test executable found: $testExe"
+        } else {
+          Write-Host "WARNING: Test executable not found: $testExe"
+        }
+        
+        # Set outputs
+        "build-path=$buildPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "binary-path=$binaryPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "test-executable=$testExe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    - name: Run Tests
+      id: run-tests
+      if: ${{ inputs.enable-testing == 'true' }}
+      shell: powershell
+      run: |
+        $buildType = "${{ inputs.build-type }}"
+        Write-Host "Running tests on $buildType build"
+        
+        cd build\bin
+        
+        if (-not (Test-Path "runTests.exe")) {
+          Write-Host "ERROR: runTests.exe not found in build\bin"
+          Write-Host "Available files:"
+          Get-ChildItem . | ForEach-Object { Write-Host "  $($_.Name)" }
+          exit 1
+        }
+        
+        .\runTests.exe --gtest_output=xml:..\..\test-results.xml
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Tests failed with exit code $LASTEXITCODE"
+          "tests-passed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "Running CTest for detailed reporting"
+        cd ..\..
+        ctest --test-dir build --build-config $buildType --output-on-failure --no-compress-output -T Test
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "CTest failed with exit code $LASTEXITCODE"
+          "tests-passed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "All tests passed successfully"
+        "tests-passed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    - name: Convert GTest to JUnit format
+      if: ${{ inputs.enable-testing == 'true' && always() }}
+      shell: powershell
+      run: |
+        if (Test-Path "test-results.xml") {
+          [xml]$gtest = Get-Content "test-results.xml"
+          $junit = @"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <testsuites name="AllTests" tests="$($gtest.testsuites.tests)" failures="$($gtest.testsuites.failures)" errors="$($gtest.testsuites.errors)" time="$($gtest.testsuites.time)">
+        "@
+          
+          foreach ($testsuite in $gtest.testsuites.testsuite) {
+            $junit += "`n  <testsuite name=`"$($testsuite.name)`" tests=`"$($testsuite.tests)`" failures=`"$($testsuite.failures)`" errors=`"$($testsuite.errors)`" time=`"$($testsuite.time)`">"
+            
+            foreach ($testcase in $testsuite.testcase) {
+              $junit += "`n    <testcase name=`"$($testcase.name)`" classname=`"$($testsuite.name)`" time=`"$($testcase.time)`""
+              
+              if ($testcase.failure) {
+                $junit += ">`n      <failure message=`"$($testcase.failure.message)`">$($testcase.failure.'#text')</failure>`n    </testcase>"
+              } elseif ($testcase.error) {
+                $junit += ">`n      <error message=`"$($testcase.error.message)`">$($testcase.error.'#text')</error>`n    </testcase>"
+              } else {
+                $junit += " />"
+              }
+            }
+            $junit += "`n  </testsuite>"
+          }
+          $junit += "`n</testsuites>"
+          
+          $junit | Out-File -FilePath "junit-results.xml" -Encoding UTF8
+          Write-Host "Converted GTest XML to JUnit format"
+        } else {
+          Write-Host "test-results.xml not found, skipping JUnit conversion"
+        }
+
+    - name: Publish Test Results
+      if: ${{ inputs.publish-test-results == 'true' && inputs.enable-testing == 'true' && always() }}
+      uses: dorny/test-reporter@v1
+      with:
+        name: Test Results
+        path: junit-results.xml
+        reporter: java-junit
+        fail-on-error: true
+
+    - name: Upload Build Artifacts
+      if: ${{ inputs.upload-artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          build/${{ inputs.build-type }}/
+          include/
+          build/include/
+        retention-days: 30
+        if-no-files-found: warn
+
+    - name: Upload Test Results Artifacts
+      if: ${{ inputs.upload-test-results == 'true' && inputs.enable-testing == 'true' && always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.test-results-name }}
+        path: |
+          test-results.xml
+          junit-results.xml
+          build/Testing/
+        retention-days: 30
+        if-no-files-found: warn

@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/WinKernelLiteTargets.cmake")
+
+# Set the include directories
+set_and_check(WinKernelLite_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/include/WinKernelLite")
+
+# For compatibility with different naming conventions
+set(WinKernelLite_INCLUDE_DIR ${WinKernelLite_INCLUDE_DIRS})
+set(WINKERNELLITE_INCLUDE_DIRS ${WinKernelLite_INCLUDE_DIRS})
+
+# Check that the library was found
+check_required_components(WinKernelLite) 

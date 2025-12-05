@@ -1,0 +1,391 @@
+name: Version Increment
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version increment type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+
+jobs:
+  increment-version:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      new_tag: ${{ steps.increment.outputs.new_tag }}
+      current_tag: ${{ steps.get_tag.outputs.current_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          try {
+            # Explicitly fetch tags
+            Write-Host "Fetching tags..."
+            git fetch --tags
+            
+            # List available tags for debugging
+            Write-Host "Available tags:"
+            $allTags = git tag --list --sort=-version:refname
+            if ($allTags) {
+              $allTags | ForEach-Object { Write-Host "  $_" }
+            } else {
+              Write-Host "  No tags found"
+            }
+            
+            # Get the latest tag
+            $latestTag = git describe --tags --abbrev=0 2>$null
+            Write-Host "git describe result: $latestTag (exit code: $LASTEXITCODE)"
+            
+            if (-not $latestTag -or $LASTEXITCODE -ne 0) { 
+              $latestTag = "v0.0.1" 
+              Write-Host "No existing tags found, starting from v0.0.1"
+            } else {
+              Write-Host "Found latest tag: $latestTag"
+            }
+            
+            Write-Host "Setting output: current_tag=$latestTag"
+            "current_tag=$latestTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            
+            # Verify the output was written
+            if (Test-Path $env:GITHUB_OUTPUT) {
+              Write-Host "GITHUB_OUTPUT contents:"
+              Get-Content $env:GITHUB_OUTPUT
+            }
+          } catch {
+            Write-Host "Error getting tags: $($_.Exception.Message)"
+            Write-Host "Using default v0.0.1"
+            "current_tag=v0.0.1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          }
+        shell: powershell
+
+      - name: Increment version
+        id: increment
+        if: success()
+        run: |
+          $currentTag = "${{ steps.get_tag.outputs.current_tag }}"
+          $versionType = "${{ github.event.inputs.version_type }}"
+          
+          Write-Host "=== Version Increment Debug ==="
+          Write-Host "Current tag from previous step: '$currentTag'"
+          Write-Host "Version type: '$versionType'"
+          
+          if (-not $currentTag) {
+            Write-Host "ERROR: Current tag is empty or null"
+            exit 1
+          }
+          
+          $tag = $currentTag -replace "^v", ""
+          Write-Host "Version string after removing 'v': '$tag'"
+          
+          $parts = $tag -split "\."
+          Write-Host "Version parts: $($parts -join ', ') (count: $($parts.Length))"
+          
+          # Ensure we have exactly 3 parts
+          while ($parts.Length -lt 3) { 
+            $parts += "0" 
+            Write-Host "Added missing part, now: $($parts -join ', ')"
+          }
+          
+          try {
+            $major = [int]$parts[0]
+            $minor = [int]$parts[1] 
+            $patch = [int]$parts[2]
+            
+            Write-Host "Parsed version: $major.$minor.$patch"
+            Write-Host "Increment type: $versionType"
+            
+            switch ($versionType) {
+              "major" { 
+                $major++; $minor=0; $patch=0 
+                Write-Host "Major increment: $major.$minor.$patch"
+              }
+              "minor" { 
+                $minor++; $patch=0 
+                Write-Host "Minor increment: $major.$minor.$patch"
+              }
+              "patch" { 
+                $patch++ 
+                Write-Host "Patch increment: $major.$minor.$patch"
+              }
+              default {
+                Write-Host "ERROR: Unknown version type: $versionType"
+                exit 1
+              }
+            }
+            
+            $newTag = "v$major.$minor.$patch"
+            Write-Host "New tag: $newTag"
+            
+            Write-Host "Setting output: new_tag=$newTag"
+            "new_tag=$newTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            
+            # Verify the output was written
+            if (Test-Path $env:GITHUB_OUTPUT) {
+              Write-Host "GITHUB_OUTPUT contents:"
+              Get-Content $env:GITHUB_OUTPUT
+            }
+          } catch {
+            Write-Host "ERROR: Failed to parse version numbers: $($_.Exception.Message)"
+            Write-Host "Parts were: $($parts -join ', ')"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Create and push tag
+        if: success()
+        run: |
+          $newTag = "${{ steps.increment.outputs.new_tag }}"
+          Write-Host "Creating tag: $newTag"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if tag already exists
+          $existingTag = git tag -l $newTag
+          if ($existingTag) {
+            Write-Host "Tag $newTag already exists, skipping creation"
+            exit 1
+          }
+          
+          # Create annotated tag with message
+          $tagMessage = "Release $newTag - Auto-generated version increment (${{ github.event.inputs.version_type }})"
+          git tag -a $newTag -m "$tagMessage"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to create tag"
+            exit 1
+          }
+          
+          git push origin $newTag
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to push tag"
+            exit 1
+          }
+          
+          Write-Host "Successfully created and pushed tag: $newTag"
+          Write-Host "This will trigger the release workflow automatically"
+        shell: powershell
+
+      - name: Create summary
+        if: success()
+        run: |
+          $newTag = "${{ steps.increment.outputs.new_tag }}"
+          $currentTag = "${{ steps.get_tag.outputs.current_tag }}"
+          
+          $summary = @"
+          ## Version Increment Summary
+          
+          - **Previous version**: $currentTag
+          - **New version**: $newTag
+          - **Increment type**: ${{ github.event.inputs.version_type }}
+          
+          ### Next Steps
+          
+          1. The tag has been created and pushed to the repository
+          2. The **build-and-release** job will now:
+             - Build and test the tagged code
+             - Generate a changelog
+             - Create release packages
+             - Publish the GitHub release
+          
+            [View Releases](https://github.com/${{ github.repository }}/releases)
+          "@
+          
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+        shell: powershell
+
+  build-and-release:
+    needs: increment-version
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      actions: read
+      issues: read
+      pull-requests: read
+    
+    steps:
+      - name: Checkout tagged code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.increment-version.outputs.new_tag }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Build for Release (Tests Already Validated)
+        id: build-test
+        uses: ./.github/actions/build-and-test
+        with:
+          build-type: 'Debug'
+          enable-testing: 'false'  # Tests already passed during PR validation before merge
+          enable-examples: 'true'
+          upload-artifacts: 'false'
+          upload-test-results: 'false'
+          publish-test-results: 'false'
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          $fromTag = "${{ needs.increment-version.outputs.current_tag }}"
+          $toTag = "${{ needs.increment-version.outputs.new_tag }}"
+          
+          Write-Host "Generating changelog from $fromTag to $toTag"
+          
+          if ($fromTag -and $fromTag -ne $toTag) {
+            $range = "$fromTag..$toTag"
+            $changelogHeader = "## Changes from $fromTag to $toTag"
+          } else {
+            $range = $toTag
+            $changelogHeader = "## All Changes (up to $toTag)"
+          }
+          
+          # Get commits with categorization
+          $commits = git log --pretty=format:"%h|%s|%an|%ad" --date=short $range --no-merges
+          
+          # Build changelog content
+          $changelog = $changelogHeader + "`n`n"
+          
+          if ($commits) {
+            $changelog += "### Changes`n`n"
+            foreach ($commit in $commits) {
+              if (-not $commit) { continue }
+              
+              $parts = $commit -split '\|'
+              if ($parts.Length -ge 2) {
+                $hash = $parts[0]
+                $message = $parts[1]
+                $author = if ($parts.Length -ge 3) { $parts[2] } else { "Unknown" }
+                
+                $changelog += "* **$hash** $message (by $author)`n"
+              }
+            }
+          } else {
+            $changelog += "* Initial release`n"
+          }
+          
+          $changelog += "`n### Statistics`n`n"
+          $totalCommits = if ($commits) { $commits.Count } else { 0 }
+          $changelog += "- **Total commits**: $totalCommits`n"
+          
+          # Add installation instructions
+          $changelog += @"
+          
+          ## Documentation
+          - [Installation Guide](https://github.com/TorinKS/WinKernelLite/blob/main/docs/installation.md)
+          - [Contributing Guide](https://github.com/TorinKS/WinKernelLite/blob/main/docs/contributing_guide.md)
+          "@
+          
+          # Save changelog
+          $changelog | Out-File -FilePath "CHANGELOG.md" -Encoding utf8
+          Write-Host "Generated changelog:"
+          Write-Host $changelog
+          
+          # Set output for release notes using heredoc syntax
+          @"
+          changelog<<EOF
+          $changelog
+          EOF
+          "@ | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        shell: powershell
+
+      - name: Package Release Artifacts
+        run: |
+          $tag = "${{ needs.increment-version.outputs.new_tag }}"
+          $packageName = "WinKernelLite-$tag"
+          
+          Write-Host "Packaging release artifacts for: $packageName"
+          
+          # Create release package directory
+          New-Item -ItemType Directory -Path "release-package" -Force
+          
+          # Copy build artifacts
+          if (Test-Path "build\Debug") {
+            New-Item -ItemType Directory -Path "release-package\bin" -Force
+            Copy-Item "build\Debug\*" "release-package\bin\" -Recurse -Force
+            Write-Host "Copied Debug build artifacts"
+          }
+          
+          # Copy headers from build directory (includes generated Version.h and all other headers)
+          if (Test-Path "build\include\WinKernelLite") {
+            New-Item -ItemType Directory -Path "release-package\include\WinKernelLite" -Force
+            Copy-Item "build\include\WinKernelLite\*" "release-package\include\WinKernelLite\" -Recurse -Force
+            Write-Host "Copied headers with generated Version.h from build/include/WinKernelLite"
+          } else {
+            Write-Host "Warning: build\include\WinKernelLite not found"
+          }
+          
+          # Copy documentation
+          Copy-Item "README.md" "release-package\" -ErrorAction SilentlyContinue
+          Copy-Item "LICENSE" "release-package\" -ErrorAction SilentlyContinue
+          Copy-Item "CHANGELOG.md" "release-package\" -ErrorAction SilentlyContinue
+          
+          if (Test-Path "docs") {
+            Copy-Item "docs" "release-package\" -Recurse -Force
+            Write-Host "Copied documentation"
+          }
+          
+          # Copy examples
+          if (Test-Path "examples") {
+            Copy-Item "examples" "release-package\" -Recurse -Force
+            Write-Host "Copied examples"
+          }
+          
+          # Create zip package
+          Compress-Archive -Path "release-package\*" -DestinationPath "$packageName.zip" -Force
+          
+          # Create source archive
+          git archive --format=zip --prefix="$packageName-src/" HEAD -o "$packageName-src.zip"
+          
+          Write-Host "Created release packages:"
+          Write-Host "- $packageName.zip (binary release with debug artifacts)"
+          Write-Host "- $packageName-src.zip (source code)"
+          
+          Write-Host "`nPackage contents:"
+          Get-ChildItem "release-package" -Recurse | ForEach-Object { 
+            Write-Host "  $($_.FullName.Replace((Get-Location).Path + '\release-package\', ''))" 
+          }
+        shell: powershell
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.increment-version.outputs.new_tag }}
+          name: "WinKernelLite ${{ needs.increment-version.outputs.new_tag }}"
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            WinKernelLite-${{ needs.increment-version.outputs.new_tag }}.zip
+            WinKernelLite-${{ needs.increment-version.outputs.new_tag }}-src.zip
+            CHANGELOG.md
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          $newTag = "${{ needs.increment-version.outputs.new_tag }}"
+          
+          Write-Host "*** Release Creation Completed Successfully! ***"
+          Write-Host ""
+          Write-Host "New release: $newTag"
+          Write-Host "Build: Debug configuration with examples"
+          Write-Host "Tests: Skipped (already validated during PR merge)"
+          Write-Host "Artifacts: Packaged and uploaded"
+          Write-Host ""
+          Write-Host "View release: https://github.com/${{ github.repository }}/releases/tag/$newTag"
+        shell: powershell

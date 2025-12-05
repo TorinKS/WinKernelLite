@@ -1,0 +1,48 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  validation-and-build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+      pull-requests: write
+      statuses: write
+      
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history to include Git tags for versioning
+
+      - name: Build and Test WinKernelLite
+        id: build-test
+        uses: ./.github/actions/build-and-test
+        with:
+          build-type: 'Debug'
+          enable-testing: 'true'
+          enable-examples: 'false'
+          upload-artifacts: 'false'  # No need to upload build artifacts for PR validation
+          upload-test-results: 'true'
+          test-results-name: 'test-results-${{ github.sha }}'
+          publish-test-results: 'true'
+
+      - name: Summary
+        if: success()
+        run: |
+          Write-Host "*** Validation and build completed successfully! ***"
+          Write-Host "Test results: test-results-${{ github.sha }}"
+          Write-Host "Tests passed: ${{ steps.build-test.outputs.tests-passed }}"
+          Write-Host ""
+          Write-Host "Ready for merge to main branch"          
+        shell: powershell

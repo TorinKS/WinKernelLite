@@ -1,0 +1,37 @@
+# Ignore all files in tmp directory except this .gitignore and .gitkeep
+*
+!.gitignore
+!.gitkeep
+!README.md
+
+# Common report file types to explicitly ignore
+*.html
+*.xml
+*.json
+*.csv
+*.txt
+*.log
+*.pdf
+*.docx
+*.xlsx
+
+# Coverage reports
+coverage/
+coverage.xml
+coverage.html
+
+# Test reports
+test-results/
+test-output/
+
+# Build artifacts
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+
+# Temporary files
+*.tmp
+*.temp
+*~
