@@ -9,7 +9,11 @@
       "Bash(openspec instructions:*)",
       "Bash(./build/bin/runTests.exe --gtest_filter=\"KernelPerf*\")",
       "Bash(powershell -Command \"Start-Process cmake -ArgumentList ''--build'',''build'',''--target'',''install_WinKernelLite'',''--config'',''Debug'' -Verb RunAs -Wait\")",
-      "Bash(openspec list:*)"
+      "Bash(openspec list:*)",
+      "Bash(grep -r \"#include\" /c/projects/winkernellite/include/*.h)",
+      "Bash(grep -r \"^#ifndef\\\\|^#define\" /c/projects/winkernellite/include/*.h)",
+      "Bash(grep:*)",
+      "Bash(./build/bin/runTests.exe)"
     ]
   }
 }
