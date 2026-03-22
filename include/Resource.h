@@ -82,12 +82,12 @@ extern "C" {
 /* Global critical region counter (protected by its own critical section) */
 extern LONG g_WinKernelLite_KernelApcDisableCount;
 extern CRITICAL_SECTION g_WinKernelLite_KernelApcDisableLock;
-extern BOOLEAN g_WinKernelLite_KernelApcDisableLockInitialized;
+extern INIT_ONCE g_WinKernelLite_KernelApcDisableInitOnce;
 
 /* Global system resources list */
 extern LIST_ENTRY g_WinKernelLite_SystemResourcesList;
 extern CRITICAL_SECTION g_WinKernelLite_SystemResourcesLock;
-extern BOOLEAN g_WinKernelLite_SystemResourcesInitialized;
+extern INIT_ONCE g_WinKernelLite_SystemResourcesInitOnce;
 
 #define IsOwnedExclusive(R) ((R)->Flag & ResourceOwnedExclusive)
 

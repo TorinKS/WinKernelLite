@@ -21,35 +21,47 @@
 /* Critical region counter (protected by its own critical section) */
 LONG g_WinKernelLite_KernelApcDisableCount = 0;
 CRITICAL_SECTION g_WinKernelLite_KernelApcDisableLock;
-BOOLEAN g_WinKernelLite_KernelApcDisableLockInitialized = FALSE;
+INIT_ONCE g_WinKernelLite_KernelApcDisableInitOnce = INIT_ONCE_STATIC_INIT;
 
 /* Global system resources list */
 LIST_ENTRY g_WinKernelLite_SystemResourcesList;
 CRITICAL_SECTION g_WinKernelLite_SystemResourcesLock;
-BOOLEAN g_WinKernelLite_SystemResourcesInitialized = FALSE;
+INIT_ONCE g_WinKernelLite_SystemResourcesInitOnce = INIT_ONCE_STATIC_INIT;
+
+static BOOL CALLBACK InitSystemResourcesCallback(PINIT_ONCE InitOnce, PVOID Parameter, PVOID* Context)
+{
+    UNREFERENCED_PARAMETER(InitOnce);
+    UNREFERENCED_PARAMETER(Parameter);
+    UNREFERENCED_PARAMETER(Context);
+    InitializeCriticalSection(&g_WinKernelLite_SystemResourcesLock);
+    InitializeListHead(&g_WinKernelLite_SystemResourcesList);
+    return TRUE;
+}
+
+static BOOL CALLBACK InitKernelApcDisableLockCallback(PINIT_ONCE InitOnce, PVOID Parameter, PVOID* Context)
+{
+    UNREFERENCED_PARAMETER(InitOnce);
+    UNREFERENCED_PARAMETER(Parameter);
+    UNREFERENCED_PARAMETER(Context);
+    InitializeCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
+    return TRUE;
+}
 
 void EnsureSystemResourcesListInitialized(void)
 {
-    if (!g_WinKernelLite_SystemResourcesInitialized) {
-        InitializeCriticalSection(&g_WinKernelLite_SystemResourcesLock);
-        InitializeListHead(&g_WinKernelLite_SystemResourcesList);
-        g_WinKernelLite_SystemResourcesInitialized = TRUE;
-    }
+    InitOnceExecuteOnce(&g_WinKernelLite_SystemResourcesInitOnce,
+                        InitSystemResourcesCallback, NULL, NULL);
 }
 
 void CleanupGlobalResources(void)
 {
-    /* Cleanup APC disable lock if initialized */
-    if (g_WinKernelLite_KernelApcDisableLockInitialized) {
-        DeleteCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
-        g_WinKernelLite_KernelApcDisableLockInitialized = FALSE;
-    }
+    /* Cleanup APC disable lock */
+    DeleteCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
+    g_WinKernelLite_KernelApcDisableInitOnce = (INIT_ONCE)INIT_ONCE_STATIC_INIT;
 
-    /* Cleanup system resources lock if initialized */
-    if (g_WinKernelLite_SystemResourcesInitialized) {
-        DeleteCriticalSection(&g_WinKernelLite_SystemResourcesLock);
-        g_WinKernelLite_SystemResourcesInitialized = FALSE;
-    }
+    /* Cleanup system resources lock */
+    DeleteCriticalSection(&g_WinKernelLite_SystemResourcesLock);
+    g_WinKernelLite_SystemResourcesInitOnce = (INIT_ONCE)INIT_ONCE_STATIC_INIT;
 }
 
 NTSTATUS
@@ -249,19 +261,18 @@ ExReleaseResourceLite(
     LeaveCriticalSection(&Resource->CriticalSection);
 }
 
+static void EnsureKernelApcDisableLockInitialized(void)
+{
+    InitOnceExecuteOnce(&g_WinKernelLite_KernelApcDisableInitOnce,
+                        InitKernelApcDisableLockCallback, NULL, NULL);
+}
+
 VOID
 KeEnterCriticalRegion(
     VOID
 )
 {
-    /* Initialize the critical section if needed */
-    if (!g_WinKernelLite_KernelApcDisableLockInitialized) {
-        InitializeCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
-        g_WinKernelLite_KernelApcDisableLockInitialized = TRUE;
-    }
-
-    /* In kernel mode, this disables normal kernel APCs */
-    /* In our user-mode implementation, we'll use a critical section for thread safety */
+    EnsureKernelApcDisableLockInitialized();
     EnterCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
     InterlockedIncrement(&g_WinKernelLite_KernelApcDisableCount);
     LeaveCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
@@ -272,13 +283,7 @@ KeLeaveCriticalRegion(
     VOID
 )
 {
-    /* Initialize the critical section if needed (safety check) */
-    if (!g_WinKernelLite_KernelApcDisableLockInitialized) {
-        InitializeCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
-        g_WinKernelLite_KernelApcDisableLockInitialized = TRUE;
-    }
-    /* Re-enables normal kernel APCs */
-    /* In our user-mode implementation, we'll use a critical section for thread safety */
+    EnsureKernelApcDisableLockInitialized();
     EnterCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
     InterlockedDecrement(&g_WinKernelLite_KernelApcDisableCount);
     LeaveCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
@@ -288,12 +293,7 @@ LONG GetKernelApcDisableCount(void)
 {
     LONG currentValue;
 
-    /* Initialize the critical section if needed */
-    if (!g_WinKernelLite_KernelApcDisableLockInitialized) {
-        InitializeCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
-        g_WinKernelLite_KernelApcDisableLockInitialized = TRUE;
-    }
-
+    EnsureKernelApcDisableLockInitialized();
     EnterCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
     currentValue = g_WinKernelLite_KernelApcDisableCount;
     LeaveCriticalSection(&g_WinKernelLite_KernelApcDisableLock);

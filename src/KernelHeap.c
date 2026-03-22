@@ -21,34 +21,44 @@
 GLOBAL_STATE* g_WinKernelLite_GlobalState = NULL;
 
 GLOBAL_STATE* GetGlobalState(void) {
-    if (g_WinKernelLite_GlobalState == NULL) {
-        HEAP_TRACE("GetGlobalState: Creating new global state");
-        GLOBAL_STATE* temp = (GLOBAL_STATE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(GLOBAL_STATE));
-        if (temp != NULL) {
-            HEAP_VERBOSE("GetGlobalState: Allocated global state at %p (size: %zu)", temp, sizeof(GLOBAL_STATE));
-            /* CriticalSection initialization removed for performance */
-            temp->HeapHandle = GetProcessHeap();
-            HEAP_VERBOSE("GetGlobalState: Using heap handle %p", temp->HeapHandle);
-            /* Initialize the linked lists immediately when creating global state */
-            InitializeListHead(&temp->MemoryAllocations);
-            InitializeListHead(&temp->FreedMemoryList);
-            /* Initialize other fields to safe defaults */
-            temp->AllocationCount = 0;
-            temp->TotalBytesAllocated = 0;
-            temp->CurrentBytesAllocated = 0;
-            temp->PeakBytesAllocated = 0;
-            temp->DoubleFreeCount = 0;
-            temp->FreedEntryCount = 0;
-            temp->MaxFreedEntries = 1000; /* Default: keep track of last 1000 freed allocations */
-            temp->NextAllocationId = 1; /* Start allocation IDs at 1 */
-            temp->SuppressErrors = FALSE;
-            temp->TrackFreedMemory = TRUE; /* Enable double-free tracking by default */
-            g_WinKernelLite_GlobalState = temp;
-            HEAP_INFO("GetGlobalState: Global state initialized successfully");
-        } else {
-            HEAP_ERROR("GetGlobalState: Failed to allocate global state");
-        }
+    GLOBAL_STATE* state = g_WinKernelLite_GlobalState;
+    if (state != NULL) {
+        return state; /* Fast path - already initialized */
     }
+
+    HEAP_TRACE("GetGlobalState: Creating new global state");
+    GLOBAL_STATE* temp = (GLOBAL_STATE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(GLOBAL_STATE));
+    if (temp == NULL) {
+        HEAP_ERROR("GetGlobalState: Failed to allocate global state");
+        return NULL;
+    }
+
+    HEAP_VERBOSE("GetGlobalState: Allocated global state at %p (size: %zu)", temp, sizeof(GLOBAL_STATE));
+    temp->HeapHandle = GetProcessHeap();
+    HEAP_VERBOSE("GetGlobalState: Using heap handle %p", temp->HeapHandle);
+    InitializeListHead(&temp->MemoryAllocations);
+    InitializeListHead(&temp->FreedMemoryList);
+    temp->AllocationCount = 0;
+    temp->TotalBytesAllocated = 0;
+    temp->CurrentBytesAllocated = 0;
+    temp->PeakBytesAllocated = 0;
+    temp->DoubleFreeCount = 0;
+    temp->FreedEntryCount = 0;
+    temp->MaxFreedEntries = 1000;
+    temp->NextAllocationId = 1;
+    temp->SuppressErrors = FALSE;
+    temp->TrackFreedMemory = TRUE;
+
+    /* Atomically publish: if another thread won the race, free our copy */
+    if (InterlockedCompareExchangePointer(
+            (PVOID*)&g_WinKernelLite_GlobalState, temp, NULL) != NULL) {
+        /* Another thread initialized first - free our allocation */
+        HEAP_TRACE("GetGlobalState: Lost race, freeing duplicate allocation at %p", temp);
+        HeapFree(GetProcessHeap(), 0, temp);
+    } else {
+        HEAP_INFO("GetGlobalState: Global state initialized successfully");
+    }
+
     return g_WinKernelLite_GlobalState;
 }
 
