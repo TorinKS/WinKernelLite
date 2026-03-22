@@ -59,7 +59,6 @@ typedef struct _DEBUG_STATE {
     BOOL OutputToFile;
     HANDLE LogFileHandle;
     CRITICAL_SECTION LogLock;
-    char LogBuffer[2048];  /* Thread-safe log buffer */
 } DEBUG_STATE;
 
 /* Function declarations */
@@ -220,37 +219,33 @@ __forceinline void DebugEnableFileLocation(BOOL enable) {
     }
 }
 
-inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component, 
+inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
                                      const char* file, int line, const char* format, ...) {
     DEBUG_STATE* state = GetDebugState();
     if (!state || level > state->Level || !(state->ComponentMask & component)) {
         return;
     }
-    
-    va_list args;
-    va_start(args, format);
-    
-    EnterCriticalSection(&state->LogLock);
-    
-    char* buffer = state->LogBuffer;
-    int bufferSize = sizeof(state->LogBuffer);
+
+    /* Format into stack-local buffer - no lock needed for formatting */
+    char buffer[2048];
+    int bufferSize = sizeof(buffer);
     int pos = 0;
-    
+
     /* Add timestamp if enabled */
     if (state->EnableTimestamp) {
         SYSTEMTIME st;
         GetLocalTime(&st);
         pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE,
-                          "[%02d:%02d:%02d.%03d] ", 
+                          "[%02d:%02d:%02d.%03d] ",
                           st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
     }
-    
+
     /* Add thread ID if enabled */
     if (state->EnableThreadId) {
         pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE,
                           "[TID:%lu] ", GetCurrentThreadId());
     }
-    
+
     /* Add debug level */
     const char* levelStr = "UNKNOWN";
     switch (level) {
@@ -262,7 +257,7 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
         default: break;
     }
     pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, "[%s] ", levelStr);
-    
+
     /* Add component */
     if (component & DEBUG_COMPONENT_HEAP) {
         pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, "[HEAP] ");
@@ -282,7 +277,7 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
     if (component & DEBUG_COMPONENT_TRACKING) {
         pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, "[TRACKING] ");
     }
-    
+
     /* Add file location if enabled */
     if (state->EnableFileLocation && file) {
         const char* fileName = strrchr(file, '\\');
@@ -290,10 +285,13 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
         if (!fileName) fileName = file; else fileName++;
         pos += _snprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, "[%s:%d] ", fileName, line);
     }
-    
+
     /* Add the actual message */
+    va_list args;
+    va_start(args, format);
     pos += _vsnprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, format, args);
-    
+    va_end(args);
+
     /* Ensure newline at end */
     if (pos > 0 && buffer[pos - 1] != '\n') {
         if (pos < bufferSize - 2) {
@@ -301,28 +299,26 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
             buffer[pos] = '\0';
         }
     }
-    
-    /* Output to console */
+
+    /* Lock only for output - formatting was done lock-free above */
+    EnterCriticalSection(&state->LogLock);
+
     if (state->OutputToConsole) {
         printf("%s", buffer);
         fflush(stdout);
     }
-    
-    /* Output to debugger */
+
     if (state->OutputToDebugger) {
         OutputDebugString(buffer);
     }
-    
-    /* Output to file */
+
     if (state->OutputToFile && state->LogFileHandle != INVALID_HANDLE_VALUE) {
         DWORD bytesWritten;
         WriteFile(state->LogFileHandle, buffer, (DWORD)strlen(buffer), &bytesWritten, NULL);
         FlushFileBuffers(state->LogFileHandle);
     }
-    
+
     LeaveCriticalSection(&state->LogLock);
-    
-    va_end(args);
 }
 
 /* Convenience macros for different debug levels and components */
