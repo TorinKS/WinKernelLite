@@ -76,18 +76,61 @@ NTSTATUS ZwCreateFile(
 
     if (*FileHandle == INVALID_HANDLE_VALUE) {
         DWORD error = GetLastError();
-        IoStatusBlock->Status = STATUS_UNSUCCESSFUL;
+        IoStatusBlock->Information = 0;
 
-        if (error == ERROR_FILE_NOT_FOUND) {
-            return STATUS_OBJECT_NAME_NOT_FOUND;
-        } else if (error == ERROR_ACCESS_DENIED) {
-            return STATUS_ACCESS_DENIED;
-        } else {
-            return STATUS_UNSUCCESSFUL;
+        switch (error) {
+            case ERROR_FILE_NOT_FOUND:
+                IoStatusBlock->Status = STATUS_OBJECT_NAME_NOT_FOUND;
+                return STATUS_OBJECT_NAME_NOT_FOUND;
+            case ERROR_PATH_NOT_FOUND:
+                IoStatusBlock->Status = STATUS_OBJECT_PATH_NOT_FOUND;
+                return STATUS_OBJECT_PATH_NOT_FOUND;
+            case ERROR_ACCESS_DENIED:
+                IoStatusBlock->Status = STATUS_ACCESS_DENIED;
+                return STATUS_ACCESS_DENIED;
+            case ERROR_FILE_EXISTS:
+            case ERROR_ALREADY_EXISTS:
+                IoStatusBlock->Status = STATUS_OBJECT_NAME_COLLISION;
+                return STATUS_OBJECT_NAME_COLLISION;
+            case ERROR_SHARING_VIOLATION:
+                IoStatusBlock->Status = STATUS_SHARING_VIOLATION;
+                return STATUS_SHARING_VIOLATION;
+            default:
+                IoStatusBlock->Status = STATUS_UNSUCCESSFUL;
+                return STATUS_UNSUCCESSFUL;
         }
     }
 
     IoStatusBlock->Status = STATUS_SUCCESS;
-    IoStatusBlock->Information = FILE_OPENED; /* Simplified */
+
+    /* Determine Information based on disposition and whether file existed */
+    {
+        DWORD lastError = GetLastError();
+        switch (CreateDisposition) {
+            case FILE_SUPERSEDE:
+                IoStatusBlock->Information = FILE_SUPERSEDED;
+                break;
+            case FILE_OPEN:
+                IoStatusBlock->Information = FILE_OPENED;
+                break;
+            case FILE_CREATE:
+                IoStatusBlock->Information = FILE_CREATED;
+                break;
+            case FILE_OPEN_IF:
+                /* CREATE_ALWAYS/OPEN_ALWAYS set ERROR_ALREADY_EXISTS when file existed */
+                IoStatusBlock->Information = (lastError == ERROR_ALREADY_EXISTS) ? FILE_OPENED : FILE_CREATED;
+                break;
+            case FILE_OVERWRITE:
+                IoStatusBlock->Information = FILE_OVERWRITTEN;
+                break;
+            case FILE_OVERWRITE_IF:
+                IoStatusBlock->Information = (lastError == ERROR_ALREADY_EXISTS) ? FILE_OVERWRITTEN : FILE_CREATED;
+                break;
+            default:
+                IoStatusBlock->Information = FILE_OPENED;
+                break;
+        }
+    }
+
     return STATUS_SUCCESS;
 }
