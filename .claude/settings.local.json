@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find /c/projects/winkernellite -type f \\\\\\(-name *.c -o -name *.cpp -o -name *.h -o -name *.hpp -o -name *.inf -o -name *.rc -o -name *.def -o -name CMakeLists.txt -o -name Makefile -o -name *.vcxproj -o -name sources \\\\\\))",
+      "Bash(openspec new:*)",
+      "Bash(git checkout:*)",
+      "Bash(openspec status:*)",
+      "Bash(openspec instructions:*)",
+      "Bash(./build/bin/runTests.exe --gtest_filter=\"KernelPerf*\")",
+      "Bash(powershell -Command \"Start-Process cmake -ArgumentList ''--build'',''build'',''--target'',''install_WinKernelLite'',''--config'',''Debug'' -Verb RunAs -Wait\")",
+      "Bash(openspec list:*)"
+    ]
+  }
+}

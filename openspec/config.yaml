@@ -1,0 +1,51 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Git branching workflow:
+    - Each OpenSpec change MUST be implemented on a separate branch
+    - Branch naming: change/<change-name> (e.g., change/add-user-auth)
+    - The branch is created from main when proposing a change
+    - Use git worktrees when available for isolation
+
+  Conventional Commits:
+    - All commits MUST follow conventional commit format: <type>(<scope>): <description>
+    - Types:
+        feat     - new feature or capability
+        fix      - bug fix
+        refactor - code restructuring without behavior change
+        docs     - documentation only
+        test     - adding or updating tests
+        chore    - build, tooling, or maintenance
+        style    - formatting, whitespace, no code change
+        perf     - performance improvement
+        ci       - CI/CD configuration
+    - Scope is optional but recommended (e.g., feat(timer): add KeQueryPerformanceCounter)
+    - Description must be lowercase, imperative mood, no period at end
+    - Breaking changes: append ! after type/scope (e.g., feat!: remove legacy API)
+
+  Semantic Versioning (MAJOR.MINOR.PATCH):
+    - The proposal artifact MUST include a "Version Impact" section stating the semver bump
+    - PATCH (x.y.Z) - bug fixes, internal refactors, docs, tests
+        - fix: correcting wrong behavior in existing function
+        - refactor/style/perf: no API surface change
+        - docs/test/chore/ci: non-code or non-public changes
+    - MINOR (x.Y.0) - new functionality, backwards-compatible
+        - feat: adding new functions, headers, types, or macros
+        - Adding optional parameters with defaults
+        - New header files
+    - MAJOR (X.0.0) - breaking changes
+        - Removing or renaming existing public functions, types, or macros
+        - Changing function signatures (parameters, return type, calling convention)
+        - Changing observable behavior of existing functions
+        - Removing or renaming header files
+        - Any commit with ! suffix (e.g., feat!, refactor!)
+    - NOT breaking (even if it feels significant):
+        - Adding new functions, headers, or types (existing code is unaffected)
+        - Internal implementation changes that preserve the same contract
+
+rules:
+  proposal:
+    - MUST include a "Version Impact" section with the recommended semver bump (MAJOR, MINOR, or PATCH) and justification
