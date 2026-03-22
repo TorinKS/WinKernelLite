@@ -77,6 +77,7 @@ typedef struct _GLOBAL_STATE {
     HANDLE HeapHandle;
     BOOL SuppressErrors;      /* Control error message output */
     BOOL TrackFreedMemory;    /* Control whether to track freed memory for double-free detection */
+    CRITICAL_SECTION TrackingLock;  /* Protects MemoryAllocations, FreedMemoryList, and counters */
 } GLOBAL_STATE;
 
 /* Function declarations - implementations in KernelHeap.c */
