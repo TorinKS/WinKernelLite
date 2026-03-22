@@ -352,9 +352,11 @@ void _ExFreePoolWithTracking(PVOID pointer, const char* FileName, int LineNumber
     HEAP_VERBOSE("_ExFreePoolWithTracking: State info - heap handle: %p, TrackFreedMemory: %d",
                  state->HeapHandle, state->TrackFreedMemory);
 
-    if (state->TrackFreedMemory) {
-        EnterCriticalSection(&state->TrackingLock);
+    /* Hold TrackingLock across double-free check AND untrack to prevent TOCTOU.
+     * CRITICAL_SECTION is recursive, so UntrackAllocation can re-enter safely. */
+    EnterCriticalSection(&state->TrackingLock);
 
+    if (state->TrackFreedMemory) {
         PLIST_ENTRY current = state->MemoryAllocations.Flink;
         while (current != &state->MemoryAllocations) {
             PMEMORY_TRACKING_ENTRY entry = CONTAINING_RECORD(current, MEMORY_TRACKING_ENTRY, ListEntry);
@@ -375,12 +377,12 @@ void _ExFreePoolWithTracking(PVOID pointer, const char* FileName, int LineNumber
             }
             HEAP_TRACE("_ExFreePoolWithTracking: No double-free detected for %p", pointer);
         }
-
-        LeaveCriticalSection(&state->TrackingLock);
     }
 
     HEAP_TRACE("_ExFreePoolWithTracking: Calling UntrackAllocation for %p", pointer);
     found = UntrackAllocation(pointer, FileName, LineNumber);
+
+    LeaveCriticalSection(&state->TrackingLock);
 
     HEAP_VERBOSE("_ExFreePoolWithTracking: UntrackAllocation returned %d for %p", found, pointer);
 
