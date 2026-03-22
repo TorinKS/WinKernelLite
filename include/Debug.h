@@ -81,24 +81,36 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
 /* Global debug state - external declaration */
 extern DEBUG_STATE* g_WinKernelLite_DebugState;
 
-/* Debug state accessor */
+/* Debug state accessor - thread-safe via InterlockedCompareExchangePointer */
 __forceinline DEBUG_STATE* GetDebugState(void) {
-    if (g_WinKernelLite_DebugState == NULL) {
-        DEBUG_STATE* temp = (DEBUG_STATE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DEBUG_STATE));
-        if (temp != NULL) {
-            InitializeCriticalSection(&temp->LogLock);
-            temp->Level = DEBUG_LEVEL_WARN;  /* Default to warnings and errors */
-            temp->ComponentMask = (DWORD)DEBUG_COMPONENT_ALL;  /* All components by default */
-            temp->EnableTimestamp = TRUE;
-            temp->EnableThreadId = TRUE;
-            temp->EnableFileLocation = TRUE;
-            temp->OutputToConsole = FALSE;  /* Disable console output for performance */
-            temp->OutputToDebugger = FALSE;  /* Disable debugger output for performance */
-            temp->OutputToFile = FALSE;  /* Will be enabled explicitly when needed */
-            temp->LogFileHandle = INVALID_HANDLE_VALUE;
-            g_WinKernelLite_DebugState = temp;
-        }
+    DEBUG_STATE* state = g_WinKernelLite_DebugState;
+    if (state != NULL) {
+        return state; /* Fast path - already initialized */
     }
+
+    DEBUG_STATE* temp = (DEBUG_STATE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DEBUG_STATE));
+    if (temp == NULL) {
+        return NULL;
+    }
+
+    InitializeCriticalSection(&temp->LogLock);
+    temp->Level = DEBUG_LEVEL_WARN;
+    temp->ComponentMask = (DWORD)DEBUG_COMPONENT_ALL;
+    temp->EnableTimestamp = TRUE;
+    temp->EnableThreadId = TRUE;
+    temp->EnableFileLocation = TRUE;
+    temp->OutputToConsole = FALSE;
+    temp->OutputToDebugger = FALSE;
+    temp->OutputToFile = FALSE;
+    temp->LogFileHandle = INVALID_HANDLE_VALUE;
+
+    /* Atomically publish: if another thread won the race, free our copy */
+    if (InterlockedCompareExchangePointer(
+            (PVOID*)&g_WinKernelLite_DebugState, temp, NULL) != NULL) {
+        DeleteCriticalSection(&temp->LogLock);
+        HeapFree(GetProcessHeap(), 0, temp);
+    }
+
     return g_WinKernelLite_DebugState;
 }
 
@@ -165,13 +177,13 @@ __forceinline void DebugEnableFileOutput(BOOL enable, const char* filename) {
     DEBUG_STATE* state = GetDebugState();
     if (!state) return;
     
-    // EnterCriticalSection(&state->LogLock);
-    
+    EnterCriticalSection(&state->LogLock);
+
     if (state->LogFileHandle != INVALID_HANDLE_VALUE) {
         CloseHandle(state->LogFileHandle);
         state->LogFileHandle = INVALID_HANDLE_VALUE;
     }
-    
+
     if (enable && filename) {
         state->LogFileHandle = CreateFile(filename, GENERIC_WRITE, FILE_SHARE_READ,
                                           NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -183,8 +195,8 @@ __forceinline void DebugEnableFileOutput(BOOL enable, const char* filename) {
     } else {
         state->OutputToFile = FALSE;
     }
-    
-    // LeaveCriticalSection(&state->LogLock);
+
+    LeaveCriticalSection(&state->LogLock);
 }
 
 __forceinline void DebugEnableTimestamp(BOOL enable) {
