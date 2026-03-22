@@ -55,12 +55,19 @@ void EnsureSystemResourcesListInitialized(void)
 
 void CleanupGlobalResources(void)
 {
-    /* Cleanup APC disable lock */
-    DeleteCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
+    BOOL pending;
+
+    /* Only delete if InitOnce completed (CS was actually initialized) */
+    if (InitOnceBeginInitialize(&g_WinKernelLite_KernelApcDisableInitOnce,
+                                INIT_ONCE_CHECK_ONLY, &pending, NULL)) {
+        DeleteCriticalSection(&g_WinKernelLite_KernelApcDisableLock);
+    }
     g_WinKernelLite_KernelApcDisableInitOnce = (INIT_ONCE)INIT_ONCE_STATIC_INIT;
 
-    /* Cleanup system resources lock */
-    DeleteCriticalSection(&g_WinKernelLite_SystemResourcesLock);
+    if (InitOnceBeginInitialize(&g_WinKernelLite_SystemResourcesInitOnce,
+                                INIT_ONCE_CHECK_ONLY, &pending, NULL)) {
+        DeleteCriticalSection(&g_WinKernelLite_SystemResourcesLock);
+    }
     g_WinKernelLite_SystemResourcesInitOnce = (INIT_ONCE)INIT_ONCE_STATIC_INIT;
 }
 
