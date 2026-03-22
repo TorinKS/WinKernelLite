@@ -267,7 +267,12 @@ inline NTSTATUS RtlInitUnicodeString(
             return STATUS_NAME_TOO_LONG;
         }
         DestinationString->Length = (USHORT)Length;
-        DestinationString->MaximumLength = (USHORT)(Length + sizeof(UNICODE_NULL));
+        /* Cap MaximumLength to avoid USHORT overflow when Length == UNICODE_STRING_MAX_BYTES */
+        if (Length + sizeof(UNICODE_NULL) > UNICODE_STRING_MAX_BYTES) {
+            DestinationString->MaximumLength = (USHORT)Length;
+        } else {
+            DestinationString->MaximumLength = (USHORT)(Length + sizeof(UNICODE_NULL));
+        }
     } else {
         DestinationString->Length = 0;
         DestinationString->MaximumLength = 0;
@@ -454,11 +459,11 @@ RtlAppendUnicodeToString(
     // Update destination length
     Destination->Length += sourceLength;
     
-    // Null terminate if there's room
-    if (Destination->Length < Destination->MaximumLength) {
+    // Null terminate if there's room for a full WCHAR
+    if (Destination->Length + sizeof(WCHAR) <= Destination->MaximumLength) {
         Destination->Buffer[Destination->Length / sizeof(WCHAR)] = UNICODE_NULL;
     }
-      return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 // Implementation of RtlAppendUnicodeStringToString
@@ -516,12 +521,11 @@ RtlAppendUnicodeStringToString(
     // Update destination length
     Destination->Length += Source->Length;
     
-    // Add null terminator if there's space (note: this is not required by the API contract
-    // but is a courtesy for debugging and compatibility with C-style strings)
-    if (Destination->Length < Destination->MaximumLength) {
+    // Add null terminator if there's space for a full WCHAR
+    if (Destination->Length + sizeof(WCHAR) <= Destination->MaximumLength) {
         Destination->Buffer[Destination->Length / sizeof(WCHAR)] = UNICODE_NULL;
     }
-      return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 /**
