@@ -102,11 +102,8 @@ TEST_F(ZwDeleteKeyTest, FailsToDeleteNonEmptyKey) {
     
     DEBUG_INFO(DEBUG_COMPONENT_REGISTRY, "ZwDeleteKey on non-empty key returned status: 0x%08X", status);
     
-    // The status 0x5 is ERROR_ACCESS_DENIED (Windows error code)
-    // We need to check for both NTSTATUS and Windows error codes
-    bool deletionFailed = (
-                          status == ERROR_ACCESS_DENIED 
-                          );                         // Any failure status
+    // ZwDeleteKey now returns proper NTSTATUS codes
+    bool deletionFailed = !NT_SUCCESS(status);
     
     if (status == STATUS_SUCCESS) {
         // If it succeeded, this indicates a limitation of the user-mode simulation

@@ -121,57 +121,48 @@ ExAcquireResourceExclusiveLite(
 )
 {
     ERESOURCE_THREAD CurrentThread;
-    BOOLEAN Result = FALSE;
 
     if (!Resource)
         return FALSE;
 
-    // Get the current thread ID as the resource thread
     CurrentThread = (ERESOURCE_THREAD)GetCurrentThreadId();
 
-    // Enter the critical section if Wait is TRUE, otherwise try to enter
-    if (Wait) {
-        EnterCriticalSection(&Resource->CriticalSection);
-    }
-    else if (!TryEnterCriticalSection(&Resource->CriticalSection)) {
-        return FALSE;
-    }
-
-    // Check if the resource is already owned
-    if (Resource->ActiveCount != 0) {
-        // If owned exclusively by the current thread, allow recursive exclusive acquisition
-        if (IsOwnedExclusive(Resource) &&
-            (Resource->OwnerThreads[0].OwnerThread == CurrentThread)) {
-            Resource->OwnerThreads[0].OwnerCount += 1;
-            Result = TRUE;
+    for (;;) {
+        if (Wait) {
+            EnterCriticalSection(&Resource->CriticalSection);
         }
-        else {
-            // Resource is owned by another thread or shared - cannot acquire exclusive
-            if (Wait == FALSE) {
-                Result = FALSE;
+        else if (!TryEnterCriticalSection(&Resource->CriticalSection)) {
+            return FALSE;
+        }
+
+        if (Resource->ActiveCount != 0) {
+            if (IsOwnedExclusive(Resource) &&
+                (Resource->OwnerThreads[0].OwnerThread == CurrentThread)) {
+                Resource->OwnerThreads[0].OwnerCount += 1;
+                LeaveCriticalSection(&Resource->CriticalSection);
+                return TRUE;
+            }
+            else if (Wait == FALSE) {
+                LeaveCriticalSection(&Resource->CriticalSection);
+                return FALSE;
             }
             else {
-                // For simplicity in this user-mode implementation:
-                // If we need to wait and we're here, we know we're holding the critical section,
-                // but the resource is owned by someone else. We'll release and retry.
+                /* Owned by another thread - release CS and retry */
                 LeaveCriticalSection(&Resource->CriticalSection);
-                Sleep(1); // Yield to other threads
-                return ExAcquireResourceExclusiveLite(Resource, Wait);
+                Sleep(1);
+                continue;
             }
         }
+        else {
+            /* Resource is free - take it exclusively */
+            Resource->Flag |= ResourceOwnedExclusive;
+            Resource->OwnerThreads[0].OwnerThread = CurrentThread;
+            Resource->OwnerThreads[0].OwnerCount = 1;
+            Resource->ActiveCount = 1;
+            LeaveCriticalSection(&Resource->CriticalSection);
+            return TRUE;
+        }
     }
-    else {
-        // Resource is not owned, so we can take it
-        Resource->Flag |= ResourceOwnedExclusive;
-        Resource->OwnerThreads[0].OwnerThread = CurrentThread;
-        Resource->OwnerThreads[0].OwnerCount = 1;
-        Resource->ActiveCount = 1;
-        Result = TRUE;
-    }
-
-    // Always release the critical section
-    LeaveCriticalSection(&Resource->CriticalSection);
-    return Result;
 }
 
 BOOLEAN
@@ -180,53 +171,42 @@ ExAcquireResourceSharedLite(
     IN BOOLEAN Wait
 )
 {
-    ERESOURCE_THREAD CurrentThread;
-    BOOLEAN Result = FALSE;
-
     if (!Resource)
         return FALSE;
 
-    // Get the current thread ID as the resource thread
-    CurrentThread = (ERESOURCE_THREAD)GetCurrentThreadId();
-
-    // Enter the critical section if Wait is TRUE, otherwise try to enter
-    if (Wait) {
-        EnterCriticalSection(&Resource->CriticalSection);
-    }
-    else if (!TryEnterCriticalSection(&Resource->CriticalSection)) {
-        return FALSE;
-    }
-
-    // Check if the resource is already owned
-    if (Resource->ActiveCount != 0) {
-        if (IsOwnedExclusive(Resource)) {
-            if (Wait == FALSE) {
-                Result = FALSE;
-            }
-            else {
-                // For simplicity in this user-mode implementation:
-                // If we need to wait and we're here, we release and retry
-                LeaveCriticalSection(&Resource->CriticalSection);
-                Sleep(1); // Yield to other threads
-                return ExAcquireResourceSharedLite(Resource, Wait);
-            }
+    for (;;) {
+        if (Wait) {
+            EnterCriticalSection(&Resource->CriticalSection);
         }
-        // It's owned shared, so we can add ourselves as another shared owner
-        else {
+        else if (!TryEnterCriticalSection(&Resource->CriticalSection)) {
+            return FALSE;
+        }
+
+        if (Resource->ActiveCount != 0) {
+            if (IsOwnedExclusive(Resource)) {
+                if (Wait == FALSE) {
+                    LeaveCriticalSection(&Resource->CriticalSection);
+                    return FALSE;
+                }
+                else {
+                    /* Owned exclusively by another thread - release CS and retry */
+                    LeaveCriticalSection(&Resource->CriticalSection);
+                    Sleep(1);
+                    continue;
+                }
+            }
+            /* Owned shared - add ourselves */
             Resource->ActiveCount++;
-            Result = TRUE;
+            LeaveCriticalSection(&Resource->CriticalSection);
+            return TRUE;
+        }
+        else {
+            /* Resource is free - take it shared */
+            Resource->ActiveCount = 1;
+            LeaveCriticalSection(&Resource->CriticalSection);
+            return TRUE;
         }
     }
-    else {
-        // Resource is not owned, so we can take it shared
-        Resource->ActiveCount = 1;
-        Result = TRUE;
-    }
-
-    // Always leave the critical section when acquiring shared
-    LeaveCriticalSection(&Resource->CriticalSection);
-
-    return Result;
 }
 
 VOID

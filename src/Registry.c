@@ -755,25 +755,28 @@ NTSTATUS ZwEnumerateValueKey(
     return STATUS_SUCCESS;
 }
 
+/* Helper: convert common Win32 registry errors to NTSTATUS */
+static NTSTATUS RegistryErrorToNtstatus(LSTATUS status) {
+    switch (status) {
+        case ERROR_SUCCESS:         return STATUS_SUCCESS;
+        case ERROR_FILE_NOT_FOUND:  return STATUS_OBJECT_NAME_NOT_FOUND;
+        case ERROR_ACCESS_DENIED:   return STATUS_ACCESS_DENIED;
+        case ERROR_INVALID_PARAMETER: return STATUS_INVALID_PARAMETER;
+        case ERROR_NO_MORE_ITEMS:   return STATUS_NO_MORE_ENTRIES;
+        default:                    return STATUS_UNSUCCESSFUL;
+    }
+}
+
 // ZwDeleteKey: Deletes a registry key using RegDeleteKeyW. Only works for empty keys (not recursive).
 NTSTATUS ZwDeleteKey(HANDLE KeyHandle) {
-    // This deletes the key that KeyHandle refers to
-    // We need to close the handle after the key is deleted
     LSTATUS status = RegDeleteKeyW((HKEY)KeyHandle, L"");
+    NTSTATUS ntStatus = RegistryErrorToNtstatus(status);
 
-    if (status != ERROR_SUCCESS) {
-        // Try to close the handle to avoid leaks even if delete failed
-        RegCloseKey((HKEY)KeyHandle);
-        return status;
-    }
-
-    // Key was deleted, now close the handle (safe because RegDeleteKeyW doesn't invalidate it)
     RegCloseKey((HKEY)KeyHandle);
-    return STATUS_SUCCESS;
+    return ntStatus;
 }
 
 NTSTATUS ZwDeleteKeyEx(HKEY KeyHandle, LPCWSTR SubKey) {
-    // RegDeleteKeyW returns ERROR_SUCCESS (0) on success, map to STATUS_SUCCESS (0)
     LSTATUS status = RegDeleteKeyW(KeyHandle, SubKey);
-    return (status == ERROR_SUCCESS) ? STATUS_SUCCESS : status;
+    return RegistryErrorToNtstatus(status);
 }

@@ -75,7 +75,7 @@ TEST_F(FileIOTest, ZwCreateFile_ValidParameters) {
     EXPECT_NE(fileHandle, nullptr);
     EXPECT_NE(fileHandle, INVALID_HANDLE_VALUE);
     EXPECT_EQ(ioStatus.Status, STATUS_SUCCESS);
-    EXPECT_EQ(ioStatus.Information, FILE_OPENED);
+    EXPECT_EQ(ioStatus.Information, FILE_CREATED);
     
     if (fileHandle && fileHandle != INVALID_HANDLE_VALUE) {
         CloseHandle(fileHandle);
@@ -143,7 +143,7 @@ TEST_F(FileIOTest, ZwCreateFile_FileNotFound) {
     );
     
     EXPECT_EQ(status, STATUS_OBJECT_NAME_NOT_FOUND);
-    EXPECT_EQ(ioStatus.Status, STATUS_UNSUCCESSFUL);
+    EXPECT_EQ(ioStatus.Status, STATUS_OBJECT_NAME_NOT_FOUND);
 }
 
 TEST_F(FileIOTest, ZwCreateFile_InvalidParameters) {

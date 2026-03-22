@@ -292,12 +292,14 @@ inline void DebugPrintInternal(DEBUG_LEVEL level, DEBUG_COMPONENT component,
     pos += _vsnprintf_s(buffer + pos, bufferSize - pos, _TRUNCATE, format, args);
     va_end(args);
 
-    /* Ensure newline at end */
-    if (pos > 0 && buffer[pos - 1] != '\n') {
-        if (pos < bufferSize - 2) {
-            buffer[pos++] = '\n';
-            buffer[pos] = '\0';
-        }
+    /* Ensure null termination and newline at end */
+    if (pos < 0) pos = 0;
+    if (pos >= bufferSize) pos = bufferSize - 1;
+    buffer[pos] = '\0';
+
+    if (pos > 0 && buffer[pos - 1] != '\n' && pos < bufferSize - 2) {
+        buffer[pos++] = '\n';
+        buffer[pos] = '\0';
     }
 
     /* Lock only for output - formatting was done lock-free above */
