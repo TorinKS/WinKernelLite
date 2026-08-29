@@ -47,6 +47,11 @@
 #define STATUS_NO_MEMORY ((NTSTATUS)0xC0000017L)
 #endif
 
+/* A kernel pool or another bounded resource cannot satisfy the request. */
+#ifndef STATUS_INSUFFICIENT_RESOURCES
+#define STATUS_INSUFFICIENT_RESOURCES ((NTSTATUS)0xC000009AL)
+#endif
+
 #ifndef STATUS_ACCESS_DENIED
 #define STATUS_ACCESS_DENIED ((NTSTATUS)0xC0000022L)
 #endif
