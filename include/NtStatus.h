@@ -47,6 +47,11 @@
 #define STATUS_NO_MEMORY ((NTSTATUS)0xC0000017L)
 #endif
 
+/* A kernel pool or another bounded resource cannot satisfy the request. */
+#ifndef STATUS_INSUFFICIENT_RESOURCES
+#define STATUS_INSUFFICIENT_RESOURCES ((NTSTATUS)0xC000009AL)
+#endif
+
 #ifndef STATUS_ACCESS_DENIED
 #define STATUS_ACCESS_DENIED ((NTSTATUS)0xC0000022L)
 #endif
@@ -77,6 +82,11 @@
 
 #ifndef STATUS_SHARING_VIOLATION
 #define STATUS_SHARING_VIOLATION ((NTSTATUS)0xC0000043L)
+#endif
+
+/* The requested object or entity is absent from the queried kernel-owned set. */
+#ifndef STATUS_NOT_FOUND
+#define STATUS_NOT_FOUND ((NTSTATUS)0xC0000225L)
 #endif
 
 // Helper macros
