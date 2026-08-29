@@ -79,6 +79,11 @@
 #define STATUS_SHARING_VIOLATION ((NTSTATUS)0xC0000043L)
 #endif
 
+/* The requested object or entity is absent from the queried kernel-owned set. */
+#ifndef STATUS_NOT_FOUND
+#define STATUS_NOT_FOUND ((NTSTATUS)0xC0000225L)
+#endif
+
 // Helper macros
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
