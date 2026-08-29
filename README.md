@@ -9,7 +9,7 @@ The idea behind WinKernelLite arose from the recurring challenges of prototyping
 - Drivers that persist policies and rules in the Windows registry to maintain policy enforcement even when user-mode code is unavailable. These drivers create in-memory structures such as AVL trees and linked lists to manage policies, enforce them by checking events from callbacks against the rules, and allow or disallow operations (e.g., creating processes/threads, reading from USB devices, opening files).
 
 This work involves extensive use of:
-- Kernel heap management functions (e.g., ExAllocatePool, ExFreePool).
+- Kernel heap management functions (e.g., ExAllocatePool2, ExAllocatePool, ExFreePool).
 - The UNICODE_STRING API (e.g., RtlCopyUnicodeString, RtlInitUnicodeString, RtlAppendUnicodeToString).
 - Working with the Windows registry from kernel-mode code (e.g., ZwCreateKey, ZwOpenKey).
 - Serialization and deserialization of rules passed between user-mode and kernel-mode components.
@@ -32,7 +32,7 @@ This library is a reincarnation of an previously writtern code, partially rewrit
 
 ## Features
 
-- **Kernel Memory Allocation**: Implementation of `ExAllocatePool`, `ExFreePool`, and related functions as wrappers over user-mode `HeapAlloc` and `HeapFree` functions
+- **Kernel Memory Allocation**: Implementation of modern `ExAllocatePool2` semantics plus legacy `ExAllocatePool`, `ExFreePool`, and related functions over the tracked user-mode heap
 - **Linked List Management**: Implementation of Windows kernel list manipulation routines for working with doubly linked lists and `LIST_ENTRY` structures in user-mode
 - **Unicode String Handling**: Support for the `UNICODE_STRING` structure and associated functions
 - **Memory Tracking**: Debug tools for tracking memory allocations and detecting leaks with detailed reporting

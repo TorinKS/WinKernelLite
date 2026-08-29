@@ -39,6 +39,35 @@ typedef enum _POOL_TYPE {
     MaxPoolType
 } POOL_TYPE;
 
+/*
+ * Modern WDK pool flags. The numeric values intentionally match wdm.h so shared
+ * kernel sources can be compiled unchanged against either environment.
+ * WinKernelLite currently simulates pool placement and zero-initialization;
+ * unsupported required modifiers fail closed, while optional flags are ignored
+ * according to the WDK forward-compatibility contract.
+ */
+typedef ULONG64 POOL_FLAGS;
+
+#define POOL_FLAG_REQUIRED_START          0x0000000000000001ULL
+#define POOL_FLAG_USE_QUOTA               0x0000000000000001ULL
+#define POOL_FLAG_UNINITIALIZED           0x0000000000000002ULL
+#define POOL_FLAG_SESSION                 0x0000000000000004ULL
+#define POOL_FLAG_CACHE_ALIGNED           0x0000000000000008ULL
+#define POOL_FLAG_RESERVED1               0x0000000000000010ULL
+#define POOL_FLAG_RAISE_ON_FAILURE        0x0000000000000020ULL
+#define POOL_FLAG_NON_PAGED               0x0000000000000040ULL
+#define POOL_FLAG_NON_PAGED_EXECUTE       0x0000000000000080ULL
+#define POOL_FLAG_PAGED                   0x0000000000000100ULL
+#define POOL_FLAG_RESERVED2               0x0000000000000200ULL
+#define POOL_FLAG_RESERVED3               0x0000000000000400ULL
+#define POOL_FLAG_RESERVED4               0x0000000000000800ULL
+#define POOL_FLAG_LAST_KNOWN_REQUIRED     POOL_FLAG_RESERVED4
+#define POOL_FLAG_REQUIRED_END            0x0000000080000000ULL
+#define POOL_FLAG_OPTIONAL_START          0x0000000100000000ULL
+#define POOL_FLAG_SPECIAL_POOL            0x0000000100000000ULL
+#define POOL_FLAG_OPTIONAL_END            0x8000000000000000ULL
+#define POOL_FLAG_REQUIRED_MASK           0x00000000FFFFFFFFULL
+
 typedef struct _MEMORY_TRACKING_ENTRY {
     LIST_ENTRY ListEntry;    /* Linked list entry - must be first */
     PVOID Address;           /* Memory address */
@@ -122,6 +151,65 @@ __forceinline PVOID ExAllocatePool(POOL_TYPE PoolType, SIZE_T NumberOfBytes) {
 __forceinline PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, SIZE_T NumberOfBytes, ULONG Tag) {
     UNREFERENCED_PARAMETER(Tag);
     return ExAllocatePool(PoolType, NumberOfBytes);
+}
+
+/*
+ * Simulates ExAllocatePool2 using WinKernelLite's existing tracked heap.
+ *
+ * Flags must select exactly one of paged, nonpaged, or executable nonpaged
+ * storage. POOL_FLAG_UNINITIALIZED is the only additional required modifier
+ * currently simulated; unrecognized optional flags are deliberately ignored.
+ * NumberOfBytes and Tag retain their WDK meanings, including the requirement
+ * that Tag be nonzero. The returned allocation is tracked and zero-initialized
+ * unless POOL_FLAG_UNINITIALIZED is present. Invalid or unsupported required
+ * flags, a zero tag, and allocation failure return NULL without changing heap
+ * accounting.
+ */
+__forceinline PVOID ExAllocatePool2(POOL_FLAGS Flags, SIZE_T NumberOfBytes, ULONG Tag) {
+    const POOL_FLAGS poolSelectionMask =
+        POOL_FLAG_NON_PAGED | POOL_FLAG_NON_PAGED_EXECUTE | POOL_FLAG_PAGED;
+    const POOL_FLAGS poolSelection = Flags & poolSelectionMask;
+    const POOL_FLAGS supportedRequiredFlags =
+        poolSelectionMask | POOL_FLAG_UNINITIALIZED;
+    const POOL_FLAGS unsupportedRequiredFlags =
+        (Flags & POOL_FLAG_REQUIRED_MASK) & ~supportedRequiredFlags;
+    POOL_TYPE poolType;
+    PVOID memory;
+
+    /* A valid WDK request has one storage class, no unsupported mandatory
+     * behavior, and a diagnostic tag that can identify the call site. */
+    if (Tag == 0 ||
+        unsupportedRequiredFlags != 0 ||
+        (poolSelection != POOL_FLAG_NON_PAGED &&
+         poolSelection != POOL_FLAG_NON_PAGED_EXECUTE &&
+         poolSelection != POOL_FLAG_PAGED)) {
+        return NULL;
+    }
+
+    /* Preserve the caller's paged/nonpaged intent through the older POOL_TYPE
+     * interface already understood by the tracked allocator. */
+    if (poolSelection == POOL_FLAG_PAGED) {
+        poolType = PagedPool;
+    } else if (poolSelection == POOL_FLAG_NON_PAGED_EXECUTE) {
+        poolType = NonPagedPoolExecute;
+    } else {
+        poolType = NonPagedPool;
+    }
+
+    /* Reuse the proven tagged allocation path so modern callers participate in
+     * the same leak, double-free, and byte-accounting diagnostics. */
+    memory = ExAllocatePoolWithTag(poolType, NumberOfBytes, Tag);
+    if (memory == NULL) {
+        return NULL;
+    }
+
+    /* Match ExAllocatePool2's security default. Only an explicit performance
+     * opt-out may expose the allocator's preexisting bytes to the caller. */
+    if ((Flags & POOL_FLAG_UNINITIALIZED) == 0) {
+        ZeroMemory(memory, NumberOfBytes);
+    }
+
+    return memory;
 }
 
 __forceinline PVOID ExAllocatePoolZeroWithTag(POOL_TYPE PoolType, SIZE_T NumberOfBytes, ULONG Tag) {
